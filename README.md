@@ -1,61 +1,93 @@
-# PSM Procurement & Shipment Dashboard
+# Finance Control — Sales & Financial BI Dashboard
 
-An interactive, self-contained dashboard for tracking the PSM–ET purchase book:
-overview KPIs, PO tracking with a lifecycle timeline, product & material analytics,
-and an exception register for overdue lines. Opens in any browser — no install.
-
-Files:
-- `index.html` — the dashboard (this is all you need to view it)
-- `data.json` — the data it shows (regenerate this when your working file changes)
-- `convert.py` — optional script to rebuild `data.json` from Excel
+A single-file web dashboard for a UAE trading business. It reads a cleaned sales dataset and adds
+editable finance modules (expenses, banks, assets, cash flow) — all in the browser, no backend.
 
 ---
 
-## 1. Publish a public link with GitHub Pages
+## Files
 
-1. Sign in at github.com → **New repository** → name it e.g. `psm-dashboard` → set **Public** → **Create**.
-2. On the repo page → **Add file → Upload files** → drag in `index.html` and `data.json` (and `README.md`) → **Commit changes**.
-3. **Settings → Pages** → under *Build and deployment*, Source = **Deploy from a branch**, Branch = **main** / **/(root)** → **Save**.
-4. Wait ~1 minute. Your link appears at the top of the Pages settings:
-   **`https://<your-username>.github.io/psm-dashboard/`**
-5. Share that link with management. It always shows whatever `data.json` is currently in the repo.
+| File | What it is |
+|---|---|
+| `index.html` | The whole application. |
+| `data.json` | The dataset the dashboard loads on start (sales + any saved manual data). |
+| `Dashboard_Master.xlsx` | **The fill-in template for every tab** — fill it, upload it, done. |
+| `convert.py` | Regenerates a sales-only `data.json` from an Excel export (optional). |
+| `README.md` | This file. |
 
-> The dashboard loads `data.json` from the same folder. On the live link it uses the committed
-> `data.json`; opened locally by double-click it falls back to the data baked into `index.html`.
+Keep `index.html` and `data.json` in the **same folder**.
 
 ---
 
-## 2. Update the data (do this daily)
+## Running it
 
-You maintain your Excel working file as usual. To push an update, pick **one** route.
+The app loads `data.json` with `fetch`, which browsers block on `file://`, so **serve the folder**:
 
-### Option A — no code (recommended)
-1. Open the dashboard (the live link, or `index.html` locally).
-2. Click **Update data** (top right) → choose your `PSM_WORKING_FILE.xlsx`.
-   The dashboard cleans and re-renders instantly — you can sanity-check the numbers.
-3. Click **Download data.json**.
-4. In your GitHub repo → **Add file → Upload files** → drop the new `data.json` → **Commit**.
-   The live link refreshes within a minute.
-
-*If you only need it for yourself, stop after step 2 — no upload needed.*
-
-### Option B — scripted (for automation)
 ```bash
-pip install pandas openpyxl        # first time only
-python convert.py PSM_WORKING_FILE.xlsx
-git add data.json && git commit -m "data update" && git push
+python -m http.server        # then open http://localhost:8000
 ```
 
-Both routes apply the same cleaning: they parse delays out of the *Time Frame* field,
-split the mixed *STATUS* column into a workflow stage plus a revised ship date, correct
-the delivered-line quantities, and trim stray spaces in *Material #*.
+Or push the folder to **GitHub Pages** and use the live URL. Charts need an internet connection
+(Chart.js loads from a CDN); all tables and figures work offline.
 
 ---
 
-## 3. Before you share publicly — a note on the data
+## The three buttons (top bar)
 
-A **public** GitHub Pages link is readable by anyone who has the URL, and `data.json`
-contains supplier names, prices and PO values. If that is acceptable for this audience, you're done.
-If it is **not**, don't use public Pages for it — host behind access control instead
-(e.g. Netlify or Cloudflare Pages with password / SSO, or an internal server). The dashboard
-file works the same way on any of them; only `data.json` needs to sit next to `index.html`.
+- **⭱ Upload Excel** — upload a filled `Dashboard_Master.xlsx`. Every tab updates from it:
+  sales, banks, operating expenses, corporate tax, assets + depreciation/interest/returns,
+  liabilities + payments/returns, cash flow, and upcoming expenses.
+- **⬇ data.json** — downloads **all dashboard data** (sales **and** every manual tab) as a single
+  `data.json`. Upload that file to your GitHub repo (replace the existing `data.json`) and the
+  **live link updates for everyone** — nothing else to send.
+- **⬇ Sample Excel** — downloads the master template (all tabs) reflecting your current data, so
+  you can fill/adjust and re-upload.
+
+### The workflow
+
+1. Open **`Dashboard_Master.xlsx`**, fill the sheets you need (see the *How to use* sheet inside).
+2. **Upload Excel** → the dashboard updates every tab.
+3. **Download data.json** → commit/replace it in your GitHub repo → the live link shows everything.
+
+Your data is also saved in the browser, so it persists across reloads on that device without any
+of the above.
+
+---
+
+## The master template — sheets
+
+`Dashboard_Master.xlsx` (and the **Sample Excel** download) contain one sheet per tab:
+
+| Sheet | Fills | Key columns |
+|---|---|---|
+| **Input Data** | Sales | Invoice#, Invoice Date, Customer Name, Quarter, Month, Years, Mode, Invoice Amount, Cost, Sales Person |
+| **Banks** | Bank Management | Account, Type (`bank`/`petty`/`other`), Balance, Note |
+| **Operating Expenses** | Expenses matrix | Year, Expense Head, Jan … Dec |
+| **Corporate Tax** | P&L tax | Year, Corporate Tax |
+| **Assets** | Fixed Assets | Asset, Category, Acquired, Cost, Note |
+| **Asset Movements** | Depreciation/interest/returns | Asset, Type (`depreciation`/`interest`/`return`), Date, Amount, Note |
+| **Liabilities** | Liabilities | Liability, Category, Date, Amount, Note |
+| **Liability Movements** | Payments/returns | Liability, Type (`payment`/`return`), Date, Amount, Note |
+| **Cash Flow** | Receivables/Payables | Category (Local/Oversea Receivable/Payable), Amount, Note |
+| **Upcoming Expenses** | Cash Flow → upcoming | Month (YYYY-MM), Date, Description, Amount, Note |
+
+Keep the **sheet names and header rows** exactly as provided. Profit and Gross % on sales are
+computed automatically by the app.
+
+---
+
+## Tabs
+
+**Analytics:** Dashboard · Customer Analysis · Salesperson Performance · Quarterly Comparison ·
+New Customer Onboard · Dormant Customers.
+**Finance:** Profit & Loss · Fixed Assets & Liabilities · Operational Expenses · Bank Management ·
+Cash Flow Control.
+
+---
+
+## Notes
+
+- No figures are invented — every number comes from the data you provide.
+- Nothing is uploaded anywhere; the app runs entirely in your browser.
+- A `data.json` produced by this dashboard bundles sales **and** manual data together, so replacing
+  it in your repo is all that's needed to update the live link.
