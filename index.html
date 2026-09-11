@@ -441,8 +441,7 @@ function renderOverview(){
   const _open=R.filter(x=>x.pendQty>0);
   $('#view').innerHTML=`
    <div class="filters" style="margin-bottom:16px">
-     <div class="chip">Supplier <b>${M.supplier}</b></div><div class="chip">Plant <b>${M.plant}</b></div>
-     <div class="chip warn">⚠ Single-source · single-plant book — concentration risk</div></div>
+     <div class="chip">Supplier <b>${M.supplier}</b></div><div class="chip">Plant <b>${M.plant}</b></div></div>
    <div class="kpis k5">
      ${kpi('Order Book Value',usdK(K.poValue),num(K.pos)+' POs · '+num(K.lines)+' lines · '+num(K.orderQ)+' units','neut')}
      ${kpi('Completed Value',usdK(K.deliveredVal),uniq(K.delivered,x=>x.po)+' POs · '+num(K.delivered.length)+' lines · '+num(K.delivQ)+' units','ok')}
