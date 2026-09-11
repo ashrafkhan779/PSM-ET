@@ -137,6 +137,10 @@ tr:last-child td{border-bottom:0}tbody tr{cursor:pointer}tbody tr:hover{backgrou
 .fgroup .pill{background:var(--slate);color:#fff;font-family:var(--body);font-size:10px;letter-spacing:.03em;text-transform:uppercase;font-weight:600;padding:9px 8px;border-radius:8px 0 0 8px;white-space:nowrap;flex:none}
 .fgroup select{border:1px solid var(--line);border-left:0;background:var(--panel);border-radius:0 8px 8px 0;padding:9px 8px;font-family:var(--mono);font-size:12px;color:var(--ink);min-width:0;width:100%;flex:1 1 0;text-overflow:ellipsis}
 .filters .clearbtn{flex:none}
+.yearbar{display:flex;align-items:center;gap:0;flex:none}
+.yearbar .yl{background:var(--slate);color:#fff;font-size:10px;font-weight:600;text-transform:uppercase;letter-spacing:.04em;height:42px;display:flex;align-items:center;padding:0 10px;border-radius:9px 0 0 9px;box-sizing:border-box}
+.yearbar select{height:42px;border:1px solid var(--line);border-left:0;border-radius:0 9px 9px 0;background:var(--panel);font-family:var(--mono);font-size:12.5px;color:var(--ink);padding:0 10px;cursor:pointer;box-sizing:border-box}
+.yearbar select:focus{outline:2px solid var(--ember);outline-offset:1px}
 .fgroup select:focus{outline:2px solid var(--ember);outline-offset:1px}
 .fcount{font-size:11.5px;color:var(--muted);margin-left:2px}
 .clearbtn svg{width:14px;height:14px}
@@ -226,6 +230,7 @@ td.mdesc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellips
           <button class="clr" id="clr" title="Clear search" aria-label="Clear search">✕</button>
           <div class="results" id="res"></div>
         </div>
+        <div class="yearbar"><span class="yl">Year</span><select id="yearSel" onchange="setYear(this.value)" aria-label="Filter by year"></select></div>
         <div class="exportwrap">
           <button class="btn ghost" id="exportBtn"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 15V3M7 10l5 5 5-5M5 21h14"/></svg>Export<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:13px;margin-left:-2px"><path d="m6 9 6 6 6-6"/></svg></button>
           <div class="menu" id="exportMenu">
@@ -343,6 +348,12 @@ const STATES=['Delivered - On Time','Pending - On Track','Overdue','Pending - Un
 const stateShort=s=>s==='Delivered - On Time'?'Delivered':s==='Overdue'?'Overdue':s==='Pending - Unclassified'?'Pending':'On Track';
 
 let R=[],M={},K={},view='overview',exportJSON=null;
+let ALLR=[],yearFilter='__ALL__';
+const poYear=x=>x.poDate?x.poDate.slice(0,4):null;
+function yearOpts(){const ys=[...new Set(ALLR.map(poYear).filter(Boolean))].sort((a,b)=>b-a);return [{v:'__ALL__',t:'All years'}].concat(ys.map(y=>({v:y,t:y})));}
+function applyYear(v){if(v!=null)yearFilter=v;R=(yearFilter==='__ALL__')?ALLR.slice():ALLR.filter(x=>poYear(x)===yearFilter);computeK();go(view);}
+window.setYear=v=>applyYear(v);
+function renderYearSel(){const sel=$('#yearSel');if(!sel)return;sel.innerHTML=yearOpts().map(o=>`<option value="${o.v}"${o.v===yearFilter?' selected':''}>${o.t}</option>`).join('');}
 function computeK(){
   K={poValue:sum(R,x=>x.value),pendValue:sum(R,x=>x.pendValue),pos:uniq(R,x=>x.po),lines:R.length,
     materials:uniq(R,x=>x.material),prods:uniq(R,x=>x.product),orderQ:sum(R,x=>x.orderQty),
@@ -353,9 +364,9 @@ function computeK(){
   K.deliveredVal=sum(K.delivered,x=>x.value);
   K.overdueRate=K.lines?K.overdue.length/K.lines:0;K.avgDelay=K.overdue.length?sum(K.overdue,x=>x.delay)/K.overdue.length:0;
 }
-function setDataset(ds){R=ds.records;M=ds.meta;
+function setDataset(ds){ALLR=ds.records;M=ds.meta;yearFilter='__ALL__';R=ALLR.slice();
   M.generated=new Date().toLocaleDateString('en-GB',{day:'2-digit',month:'short',year:'numeric'});
-  computeK();
+  computeK();renderYearSel();
   $('#foot').innerHTML=`Source: PSM working file<br>${M.poMin?fmtd(M.poMin):''} – ${M.poMax?fmtd(M.poMax):''}<br>Data as of ${M.generated}`;
   go(view);}
 function toast(msg,err){const t=$('#toast');t.textContent=msg;t.className='toast show'+(err?' err':'');setTimeout(()=>t.className='toast',3200);}
