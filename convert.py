@@ -64,6 +64,10 @@ def main(path):
             oldst=g('STATUS').iloc[i]; d=to_date(oldst)
             if d is not None: stage='Scheduled'; rev=d
             else: stage=old_stage(oldst); rev=rts
+        _sl=(stage or '').strip().lower()
+        if _sl=='material ready to ship': stage='Material Ready to Ship'
+        elif _sl in ('in-process','in process'): stage='In-Process'
+        elif _sl=='shipped': stage='Shipped'
         delst=g('Delivery Status').iloc[i]
         stt=state(cur if hasCur else delst, stage, tfcat)
         oq=pd.to_numeric(g('Order Quantity').iloc[i],errors='coerce'); oq=0 if pd.isna(oq) else int(oq)
@@ -84,6 +88,12 @@ def main(path):
             category=str(g('PO Category').iloc[i]).strip() if col(df,'PO Category') else '',
             rmStatus=str(g('RM Status').iloc[i]).strip() if col(df,'RM Status') else '',
             remarks=str(g('Remarks').iloc[i]).strip() if col(df,'Remarks') and g('Remarks').iloc[i] is not None and not (isinstance(g('Remarks').iloc[i],float) and pd.isna(g('Remarks').iloc[i])) else '',
+            qcStatus=str(g('QC Status').iloc[i]).strip() if col(df,'QC Status') and not pd.isna(g('QC Status').iloc[i]) else '',
+            shipStatus=str(g('Shipment Status').iloc[i]).strip() if col(df,'Shipment Status') and not pd.isna(g('Shipment Status').iloc[i]) else '',
+            freightType=str(g('Freight Type').iloc[i]).strip() if col(df,'Freight Type') and not pd.isna(g('Freight Type').iloc[i]) else '',
+            freightPO=str(g('Freight PO').iloc[i]).strip() if col(df,'Freight PO') and not pd.isna(g('Freight PO').iloc[i]) else '',
+            awb=str(g('AWB/BL No').iloc[i]).strip() if col(df,'AWB/BL No') and not pd.isna(g('AWB/BL No').iloc[i]) else '',
+            eta=ds(to_date(g('ETA').iloc[i])) if col(df,'ETA') else None,
             state=stt,stage=stage,poDate=ds(pod),
             reqDate=ds(to_date(g('PSM Required Date','PSM Delivery Date').iloc[i])),
             expShip=ds(to_date(g('ET Promised Date','ET Expected Ship Date').iloc[i])),
