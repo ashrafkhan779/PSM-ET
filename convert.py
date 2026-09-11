@@ -26,8 +26,11 @@ def to_date(v):
 def parse_tf(v):
     if v is None or (isinstance(v,float) and pd.isna(v)) or str(v).strip()=='' : return 'Unknown',None,None
     s=str(v); m=re.search(r'(\d+)',s); n=int(m.group(1)) if m else None
-    if re.search(r'delay|overdue|late',s,re.I): return 'Delayed',None,n
+    if re.search(r'delay\s+by',s,re.I): return 'Delayed',None,n
+    if re.search(r'material ready',s,re.I): return 'Ready',0,None
+    if re.search(r'yet to confirm|promise date',s,re.I): return 'Unconfirmed',None,None
     if re.search(r'remaining',s,re.I): return 'On Track',n,None
+    if re.search(r'delay|overdue|late',s,re.I): return 'Delayed',None,n
     return 'On Time',0,0
 def old_stage(v):
     if v is None or pd.isna(v): return 'Scheduled'
@@ -88,6 +91,10 @@ def main(path):
             category=str(g('PO Category').iloc[i]).strip() if col(df,'PO Category') else '',
             rmStatus=str(g('RM Status').iloc[i]).strip() if col(df,'RM Status') else '',
             remarks=str(g('Remarks').iloc[i]).strip() if col(df,'Remarks') and g('Remarks').iloc[i] is not None and not (isinstance(g('Remarks').iloc[i],float) and pd.isna(g('Remarks').iloc[i])) else '',
+            tfRaw=str(g('Time Frame').iloc[i]).strip() if col(df,'Time Frame') and not pd.isna(g('Time Frame').iloc[i]) else '',
+            orderUnit=str(g('Order Unit').iloc[i]).strip() if col(df,'Order Unit') and not pd.isna(g('Order Unit').iloc[i]) else '',
+            unitPrice=float(pd.to_numeric(g('Unit Price','Net Price').iloc[i],errors='coerce')) if not pd.isna(pd.to_numeric(g('Unit Price','Net Price').iloc[i],errors='coerce')) else 0.0,
+            currency=str(g('Currency').iloc[i]).strip() if col(df,'Currency') and not pd.isna(g('Currency').iloc[i]) else '',
             qcStatus=str(g('QC Status').iloc[i]).strip() if col(df,'QC Status') and not pd.isna(g('QC Status').iloc[i]) else '',
             shipStatus=str(g('Shipment Status').iloc[i]).strip() if col(df,'Shipment Status') and not pd.isna(g('Shipment Status').iloc[i]) else '',
             freightType=str(g('Freight Type').iloc[i]).strip() if col(df,'Freight Type') and not pd.isna(g('Freight Type').iloc[i]) else '',
