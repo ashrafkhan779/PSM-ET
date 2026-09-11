@@ -219,6 +219,44 @@ td.mdesc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellips
 .dark .track .pct,.dark .fbar .pct{color:#fff;text-shadow:0 0 3px rgba(0,0,0,.7),0 0 2px rgba(0,0,0,.7)}
 .dark img,.dark .heat span{filter:none}
 #themeToggle{padding:9px}#themeToggle svg{width:17px;height:17px}
+/* ===== AI chat ===== */
+.aiwrap{display:flex;flex-direction:column;height:calc(100vh - 190px);min-height:460px}
+.aichat{flex:1;overflow-y:auto;padding:6px 4px 12px;display:flex;flex-direction:column;gap:14px}
+.aimsg{max-width:88%;font-size:13.5px;line-height:1.5}
+.aimsg.user{align-self:flex-end;background:var(--slate);color:#fff;padding:9px 14px;border-radius:14px 14px 4px 14px;font-weight:500}
+.aimsg.bot{align-self:flex-start;background:var(--panel2);border:1px solid var(--line);padding:12px 15px;border-radius:14px 14px 14px 4px;width:100%;max-width:100%;box-sizing:border-box}
+.aimsg.bot h4{margin:0 0 8px;font:600 14px var(--disp);color:var(--ink)}
+.aimsg.bot .sub2{color:var(--muted);font-size:12px;margin:0 0 10px}
+.aimsg.bot table{margin-top:8px}
+.aiwelcome{color:var(--steel);font-size:13.5px;line-height:1.6}
+.aiinput{display:flex;gap:8px;align-items:center;margin-top:10px;border-top:1px solid var(--line);padding-top:12px}
+.aiinput input{flex:1;border:1px solid var(--line);background:var(--panel);border-radius:10px;padding:12px 14px;font-family:var(--body);font-size:14px;color:var(--ink)}
+.aiinput input:focus{outline:2px solid var(--ember);outline-offset:0}
+.aimic{all:unset;cursor:pointer;width:44px;height:44px;border-radius:10px;background:var(--panel2);border:1px solid var(--line);display:flex;align-items:center;justify-content:center;color:var(--slate);flex:none}
+.aimic:hover{border-color:var(--ember);color:var(--ember)}
+.aimic.listening{background:var(--hot);color:#fff;border-color:var(--hot);animation:pulse 1s infinite}
+@keyframes pulse{0%,100%{box-shadow:0 0 0 0 rgba(198,63,39,.5)}50%{box-shadow:0 0 0 8px rgba(198,63,39,0)}}
+.aisend{all:unset;cursor:pointer;padding:0 18px;height:44px;border-radius:10px;background:var(--ember);color:#fff;font-weight:600;font-size:13.5px;display:flex;align-items:center;flex:none}
+.aichips{display:flex;flex-wrap:wrap;gap:7px;margin-top:10px}
+.aichip{background:var(--panel);border:1px solid var(--line);border-radius:999px;padding:6px 12px;font-size:12px;color:var(--slate);cursor:pointer;transition:border-color .15s}
+.aichip:hover{border-color:var(--ember);color:var(--ember)}
+.dark .aichip,.dark .aimsg.bot h4{color:var(--ink)}
+.aitop{display:flex;justify-content:space-between;align-items:center;margin-bottom:10px;font-size:13px;flex:none}
+.aiclear{all:unset;cursor:pointer;font-size:12px;color:var(--hot);border:1px solid var(--line);padding:5px 11px;border-radius:8px;font-weight:600}
+.aiclear:hover{border-color:var(--hot)}
+.aichartbox{height:360px;margin-top:12px;background:var(--panel);border:1px solid var(--line);border-radius:10px;padding:14px}
+.aline{border:1px solid var(--line);border-radius:10px;padding:12px 14px;margin-top:10px;background:var(--panel)}
+.alh{font-size:13px;margin-bottom:11px;padding-bottom:9px;border-bottom:1px solid var(--line)}
+.agrid{display:grid;grid-template-columns:repeat(3,1fr);gap:10px 18px}
+.afield{min-width:0}
+.afl{font-size:9.5px;letter-spacing:.05em;text-transform:uppercase;color:var(--muted);font-weight:600}
+.afv{font-size:12.5px;color:var(--ink);margin-top:2px;word-break:break-word;font-weight:500}
+@media(max-width:1000px){.agrid{grid-template-columns:repeat(2,1fr)}}
+.pochip{display:inline-block;font-family:var(--mono);font-size:11px;background:var(--panel);border:1px solid var(--line);border-radius:6px;padding:2px 7px;margin:2px 3px 2px 0;cursor:pointer;color:var(--slate)}
+.pochip:hover{border-color:var(--ember);color:var(--ember)}
+.dark .pochip{color:var(--ink)}
+.aitrace{font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:10px;display:inline-block}
+.aitrace b{color:var(--ember)}
 </style>
 </head>
 <body>
@@ -232,6 +270,7 @@ td.mdesc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellips
       <button data-v="aging"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><circle cx="12" cy="13" r="8"/><path d="M12 9v4l2.5 2.5M9 2h6"/></svg>Aging &amp; Delays</button>
       <button data-v="qc"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M9 11l3 3L22 4"/><path d="M21 12v7a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2V5a2 2 0 0 1 2-2h11"/></svg>QC Status</button>
       <button data-v="ship"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M16 3h5v5"/><path d="M8 3H3v5"/><path d="M3 16v5h5"/><path d="M21 16v5h-5"/><rect x="7" y="7" width="10" height="10" rx="1"/></svg>Shipment Status</button>
+      <button data-v="ai"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M12 8V4H8"/><rect x="4" y="8" width="16" height="12" rx="2"/><path d="M2 14h2M20 14h2M15 13v2M9 13v2"/></svg>AI Status</button>
       <button data-v="data"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"><path d="M4 7c0-1.7 3.6-3 8-3s8 1.3 8 3-3.6 3-8 3-8-1.3-8-3z"/><path d="M4 7v10c0 1.7 3.6 3 8 3s8-1.3 8-3V7"/><path d="M4 12c0 1.7 3.6 3 8 3s8-1.3 8-3"/></svg>Update Data</button>
     </nav>
     <div class="railfoot" id="foot"></div>
@@ -843,8 +882,217 @@ function shipDetail(){
 }
 window.selShip=po=>{shipSel=(shipSel===po)?null:po;renderShip();};
 
+/* ================= AI STATUS — advanced local agent + voice + charts ================= */
+let aiMsgs=[];
+let aiCtx=null;
+function aiLev(a,b){a=a||'';b=b||'';const m=a.length,n=b.length;if(!m)return n;if(!n)return m;let prev=Array.from({length:n+1},(_,j)=>j),cur=new Array(n+1);for(let i=1;i<=m;i++){cur[0]=i;for(let j=1;j<=n;j++)cur[j]=Math.min(prev[j]+1,cur[j-1]+1,prev[j-1]+(a[i-1]===b[j-1]?0:1));[prev,cur]=[cur,prev];}return prev[n];}
+const AI_SYN=[[/\bov(er)?\s?d(u|e)e?\b|\bover ?do\b|\bdelai?ed\b|\bdelyed\b|\bdlayed\b/g,'overdue'],[/\bshipm?en?ts?\b|\bshipmnt\b|\bshippment\b|\bshipmet\b/g,'shipment'],[/\btra?ns?it\b|\btrasit\b|\btranist\b/g,'transit'],[/\bprod?u?cts?\b|\bprodct\b|\bprducts?\b/g,'product'],[/\bcomplet(ed|d|id)\b|\bcompleated\b/g,'completed'],[/\bpend(ing|ign|in)\b|\bpeding\b/g,'pending'],[/\bch(a)?rts?\b|\bgrap?hs?\b|\bgrf\b/g,'chart'],[/\bcustm?s\b/g,'customs'],[/\bfr(e)?ight\b|\bfreght\b/g,'freight'],[/\bappr?ov(ed|al)\b/g,'approved'],[/\bdelivrd\b|\bdeliverd\b/g,'delivered'],[/\bperchase\b|\bpurchse\b/g,'purchase'],[/\bpo ?#?\s*/g,'po ']];
+function aiNormalize(q){let s=(q||'').toLowerCase().replace(/\s+/g,' ').trim();AI_SYN.forEach(([re,rep])=>{s=s.replace(re,rep);});
+  const VOCAB=['overdue','delayed','shipment','transit','completed','pending','delivered','product','chart','graph','customs','freight','approved','purchase','pickup','collected','arrived','future','buyer','category','production','value','total','overview','summary','status','material','quantity','shipped','awaiting','quality','count','number'];
+  const prods=[...new Set(R.map(x=>x.product))].map(p=>p.toLowerCase());
+  s=s.split(' ').map(tok=>{const c=tok.replace(/[^a-z0-9]/g,'');if(c.length<4||/^\d+$/.test(c)||VOCAB.includes(c))return tok;
+    if(prods.some(p=>aiLev(c,p)<=1))return tok;
+    let best=null,bd=99;for(const v of VOCAB){const d=aiLev(c,v);const thr=v.length>=7?2:1;if(d<=thr&&d<bd){bd=d;best=v;}}return best?tok.replace(c,best):tok;
+  }).join(' ');
+  return s;}
+function aiFuzzyPick(list,tokens){for(const it of list){const w=String(it).toLowerCase();if(tokens.includes(w))return it;}for(const it of list){for(const wd of String(it).toLowerCase().split(/[^a-z0-9]+/)){if(wd.length>3)for(const t of tokens)if(t.length>3&&aiLev(t,wd)<=1)return it;}}return null;}
+function aiEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
+const AI_PALETTE=['#E0602B','#3A76B8','#1E8A6E','#6B5CA5','#C08A2E','#2AA6A6','#C63F27','#4C617D','#B8573F','#5B8C3E','#8A5CB0','#2E7DA8'];
+async function ensureChartJS(){if(!window.Chart)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');}
+function aiChartConfig(spec){
+  const dark=document.documentElement.classList.contains('dark');
+  const tc=dark?'#C4D0DE':'#4C617D',grid=dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)';
+  const {type,labels,values}=spec;
+  const colors=labels.map((_,i)=>AI_PALETTE[i%AI_PALETTE.length]);
+  const total=values.reduce((s,v)=>s+v,0)||1;
+  const fmt=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+Math.round(v/1e3)+'K':'$'+Math.round(v);
+  const common={responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'}};
+  if(type==='doughnut')return {type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:dark?'#18222F':'#fff',borderWidth:2,hoverOffset:10}]},options:{...common,cutout:'60%',plugins:{legend:{position:'right',labels:{color:tc,font:{size:12},padding:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmt(c.raw)+' ('+(c.raw/total*100).toFixed(1)+'%)'}}}}};
+  if(type==='line')return {type:'line',data:{labels,datasets:[{label:'PO value',data:values,borderColor:'#3A76B8',backgroundColor:'rgba(58,118,184,.16)',fill:true,tension:.35,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:'#3A76B8',borderWidth:2.5}]},options:{...common,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:tc,maxRotation:45},grid:{display:false}},y:{ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}}};
+  return {type:'bar',data:{labels,datasets:[{label:'Value',data:values,backgroundColor:colors,borderRadius:7,maxBarThickness:52}]},options:{...common,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:tc,autoSkip:false,maxRotation:40},grid:{display:false}},y:{ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}}};
+}
+function drawAICharts(){ensureChartJS().then(()=>{aiMsgs.forEach((m,i)=>{if(m.chart){const cv=document.getElementById('aic'+i);if(cv){try{const ex=window.Chart.getChart&&window.Chart.getChart(cv);if(ex)ex.destroy();new window.Chart(cv,aiChartConfig(m.chart));}catch(e){}}}});}).catch(()=>toast('Could not load the chart library (offline?).',true));}
+function aiChart(scope,dim,title){
+  const key=x=>({product:x.product,stage:x.stage,state:stateShort(x.state),buyer:x.buyer||'—',category:x.category||'—',poMonth:x.poMonth,plant:x.plant,rmStatus:x.rmStatus||'—',qcStatus:x.qcStatus||'—',shipStatus:x.shipStatus||'—'}[dim])||'—';
+  const map={};scope.forEach(x=>{const k=key(x);(map[k]=map[k]||{v:0,q:0,n:0});map[k].v+=x.value;map[k].q+=x.orderQty;map[k].n++;});
+  let entries=Object.entries(map);
+  if(dim==='poMonth')entries.sort((a,b)=>new Date('1 '+a[0])-new Date('1 '+b[0]));else entries.sort((a,b)=>b[1].v-a[1].v);
+  if(!entries.length)return 'No data to chart for that request.';
+  const labels=entries.map(e=>e[0]),values=entries.map(e=>e[1].v);
+  const type=dim==='poMonth'?'line':(['product','state','stage','qcStatus','shipStatus','category'].includes(dim)&&labels.length<=8)?'doughnut':'bar';
+  return {html:`<h4>${aiEsc(title)}</h4><p class="sub2">${scope.length} lines · ${uniq(scope,x=>x.po)} POs · ${usdK(sum(scope,x=>x.value))} total</p>`,chart:{type,labels,values}};
+}
+function aiTable(heads,rows){return `<div class="tablewrap"><table><thead><tr>${heads.map(h=>`<th${h.r?' class="right"':(h.c?' class="center"':'')}>${aiEsc(h.t)}</th>`).join('')}</tr></thead><tbody>${rows}</tbody></table></div>`;}
+function aiGroupTable(scope,dimKey,dimLabel,title){
+  const g={};scope.forEach(x=>{const k=(x[dimKey]||'—');(g[k]=g[k]||{n:0,q:0,v:0,pv:0,po:new Set()});g[k].n++;g[k].q+=x.orderQty;g[k].v+=x.value;g[k].pv+=x.pendValue;g[k].po.add(x.po);});
+  const rows=Object.entries(g).sort((a,b)=>b[1].v-a[1].v).map(([k,d])=>`<tr><td>${aiEsc(k)}</td><td class="center">${d.po.size}</td><td class="center">${d.n}</td><td class="right mono">${num(d.q)}</td><td class="right mono">${usd(d.v)}</td><td class="right mono">${usd(d.pv)}</td></tr>`).join('');
+  return `<h4>${aiEsc(title)}</h4><p class="sub2">${scope.length} lines · ${uniq(scope,x=>x.po)} POs · ${usdK(sum(scope,x=>x.value))} · ${usdK(sum(scope,x=>x.pendValue))} open</p>${aiTable([{t:dimLabel},{t:'POs',c:1},{t:'Lines',c:1},{t:'Units',r:1},{t:'Value',r:1},{t:'Pending',r:1}],rows)}`;
+}
+function aiKpis(scope){const dv=scope.filter(x=>x.state==='Delivered - On Time'),ov=scope.filter(x=>x.state==='Overdue'),op=scope.filter(x=>x.pendQty>0);
+  return `<div class="kpis" style="grid-template-columns:repeat(4,1fr)">
+    ${kpi('Book value',usdK(sum(scope,x=>x.value)),uniq(scope,x=>x.po)+' POs · '+scope.length+' lines','neut')}
+    ${kpi('Completed',usdK(sum(dv,x=>x.value)),dv.length+' lines · '+num(sum(dv,x=>x.delivQty))+' u','ok')}
+    ${kpi('Open value',usdK(sum(op,x=>x.pendValue)),num(sum(scope,x=>x.pendQty))+' units','flight')}
+    ${kpi('Overdue',usdK(sum(ov,x=>x.pendValue)),ov.length+' lines','hot')}</div>`;}
+function aiField(label,val){return `<div class="afield"><div class="afl">${aiEsc(label)}</div><div class="afv">${aiEsc(val==null||val===''?'—':val)}</div></div>`;}
+function aiPO(po){
+  const L=R.filter(x=>x.po===po);if(!L.length)return `I couldn't find PO ${aiEsc(po)} in the current data.`;
+  const oq=sum(L,x=>x.orderQty),dq=sum(L,x=>x.delivQty),pq=sum(L,x=>x.pendQty),val=sum(L,x=>x.value);
+  const dv=L.filter(x=>x.state==='Delivered - On Time').length,ov=L.filter(x=>x.state==='Overdue').length,tk=L.filter(x=>x.state==='Pending - On Track').length;
+  const prods=[...new Set(L.map(x=>x.product))].join(', ');const worst=ov?'Overdue':(dv===L.length?'Completed':'On track');
+  const head=`<h4>PO ${aiEsc(po)} — ${worst}</h4>
+    <p class="sub2">Raised ${fmtd(L[0].poDate)} · ${aiEsc(prods)} · Buyer ${aiEsc(L[0].buyer||'—')} · ${aiEsc(L[0].category||'—')} · Supplier ${aiEsc(L[0].supplier||'—')} · Plant ${aiEsc(L[0].plant||'—')}</p>
+    <div class="pohead" style="grid-template-columns:repeat(4,1fr);margin-bottom:12px">
+      <div class="m"><div class="l">Order value</div><div class="v">${usdK(val)}</div></div>
+      <div class="m"><div class="l">Lines</div><div class="v">${L.length}</div></div>
+      <div class="m"><div class="l">Units ord/deliv/pend</div><div class="v" style="font-size:15px">${num(oq)}/${num(dq)}/${num(pq)}</div></div>
+      <div class="m"><div class="l">Status</div><div class="v" style="font-size:14px">${dv} done · ${tk} track · <span style="color:var(--hot)">${ov} late</span></div></div></div>
+    ${poTimeline(L)}`;
+  const lines=L.slice().sort((a,b)=>(a.line||0)-(b.line||0)).map(x=>`<div class="aline"><div class="alh"><span class="tag ${STATE[x.state]}">${stateShort(x.state)}${x.delay?' · '+x.delay+'d late':''}</span> &nbsp;<b>Line ${x.line??'—'}</b> · ${aiEsc(x.material)} · ${usd(x.value)}</div>
+    <div class="agrid">
+      ${aiField('Material #',x.material)}${aiField('Material Description',x.desc)}${aiField('Product',x.product)}
+      ${aiField('Order Quantity',num(x.orderQty)+' '+(x.orderUnit||''))}${aiField('Unit Price',x.unitPrice?((x.currency||'')+' '+usd(x.unitPrice)):'—')}${aiField('Total Value',usd(x.value))}
+      ${aiField('Current Status',x.stage)}${aiField('Time Frame',x.tfRaw)}${aiField('RM Status',x.rmStatus)}
+      ${aiField('PSM PO Date',fmtd(x.poDate))}${aiField('PSM Required Date',fmtd(x.reqDate))}${aiField('ET Promised Date',fmtd(x.expShip))}
+      ${aiField('ET RTS Date',fmtd(x.revShip))}${aiField('Actual Ship Date',fmtd(x.actShip))}${aiField('Pending Qty',num(x.pendQty))}
+      ${aiField('QC Status',x.qcStatus)}${aiField('Shipment Status',x.shipStatus)}${aiField('Freight Type',x.freightType)}
+      ${aiField('ETA',fmtd(x.eta))}${aiField('AWB / BL No',x.awb)}${aiField('Freight PO',x.freightPO)}
+      ${aiField('PO Category',x.category)}${aiField('Buyer',x.buyer)}${aiField('Days Remaining',x.remaining!=null?x.remaining:'—')}
+      ${aiField('Remarks',x.remarks)}
+    </div></div>`).join('');
+  return head+`<div style="margin-top:12px;font-size:12px;color:var(--muted);font-weight:600;text-transform:uppercase;letter-spacing:.05em">Full line-item detail (${L.length})</div>${lines}`;
+}
+function aiPOList(recs,title,valFn){if(!recs.length)return 'No matching POs found.';valFn=valFn||(x=>x.value);const hasD=recs.some(x=>x.delay);
+  const byPO={};recs.forEach(x=>{(byPO[x.po]=byPO[x.po]||{n:0,v:0,q:0,d:0,prod:new Set(),date:x.poDate});byPO[x.po].n++;byPO[x.po].v+=valFn(x);byPO[x.po].q+=x.orderQty;byPO[x.po].d=Math.max(byPO[x.po].d,x.delay||0);byPO[x.po].prod.add(x.product);});
+  const rows=Object.entries(byPO).sort((a,b)=>b[1].v-a[1].v).map(([po,m])=>`<tr onclick="openPO('${po}')"><td class="mono">${po}</td><td class="mono">${fmtd(m.date)}</td><td>${aiEsc([...m.prod].join(' · '))}</td><td class="center">${m.n}</td><td class="right mono">${num(m.q)}</td><td class="right mono">${usd(m.v)}</td>${hasD?`<td class="center">${m.d?m.d+'d':'—'}</td>`:''}</tr>`).join('');
+  return `<h4>${aiEsc(title)}</h4><p class="sub2">${recs.length} lines · ${uniq(recs,x=>x.po)} POs · ${usdK(sum(recs,valFn))} · click a row to open the PO</p>${aiTable([{t:'PO #'},{t:'PO date'},{t:'Products'},{t:'Lines',c:1},{t:'Units',r:1},{t:'Value',r:1}].concat(hasD?[{t:'Max delay',c:1}]:[]),rows)}`;
+}
+function aiLineList(recs,title){if(!recs.length)return 'No matching lines found.';
+  const rows=recs.slice().sort((a,b)=>((+b.po)-(+a.po))||((a.line||0)-(b.line||0))).slice(0,400).map(x=>`<tr onclick="openPO('${x.po}')"><td class="mono">${x.po}</td><td class="center mono">${x.line??'—'}</td><td class="mono">${aiEsc(x.material)}</td><td class="mdesc" title="${aiEsc(x.desc)}">${aiEsc(x.desc)}</td><td class="right mono">${num(x.orderQty)}</td><td class="right mono">${usd(x.value)}</td><td><span class="tag ${STATE[x.state]}">${stateShort(x.state)}</span></td><td style="font-size:11px">${aiEsc(x.shipStatus||x.stage||'—')}</td></tr>`).join('');
+  return `<h4>${aiEsc(title)}</h4><p class="sub2">${recs.length} lines · ${uniq(recs,x=>x.po)} POs · ${usdK(sum(recs,x=>x.value))}${recs.length>400?' · showing first 400':''}</p>${aiTable([{t:'PO #'},{t:'Line',c:1},{t:'Material'},{t:'Description'},{t:'Qty',r:1},{t:'Value',r:1},{t:'Status'},{t:'Ship / stage'}],rows)}`;
+}
+function aiFigure(scope,s,label){
+  const pos=uniq(scope,x=>x.po),lines=scope.length,units=sum(scope,x=>x.orderQty),val=sum(scope,x=>x.value),pend=sum(scope,x=>x.pendValue);
+  let head;
+  if(/(pend|open|outstanding|remaining).*(value|worth|amount)|value.*(pend|open|outstanding)/.test(s))head=usdK(pend)+' pending value';
+  else if(/value|worth|amount|how much|total|\$|revenue/.test(s))head=usdK(val)+' total value';
+  else if(/unit|quantity|\bqty\b/.test(s))head=num(units)+' units';
+  else if(/\bline|\bitem/.test(s))head=num(lines)+' lines';
+  else head=num(pos)+' PO'+(pos===1?'':'s');
+  return `<h4>${head}${label}</h4><div class="kpis" style="grid-template-columns:repeat(4,1fr)">${kpi('POs',num(pos))}${kpi('Lines',num(lines))}${kpi('Units',num(units))}${kpi('Value',usdK(val),usdK(pend)+' open')}</div>`;
+}
+function aiShipMatrix(scope,label){
+  const S=scope.filter(x=>x.shipStatus);if(!S.length)return 'No shipment activity recorded'+label+'.';
+  const rows=SHIP_STAGES.map(st=>{const L=S.filter(x=>shipNorm(x.shipStatus)===shipNorm(st.k));const pos=[...new Set(L.map(x=>x.po))].sort();
+    return `<tr><td><span style="display:inline-block;width:9px;height:9px;border-radius:50%;background:${st.c};margin-right:7px"></span>${st.k}</td><td class="center">${pos.length}</td><td class="center">${L.length}</td><td class="right mono">${usd(sum(L,x=>x.value))}</td><td>${pos.length?pos.map(p=>`<span class="pochip" onclick="event.stopPropagation();openPO('${p}')">${p}</span>`).join(''):'<span style="color:var(--muted)">—</span>'}</td></tr>`;}).join('');
+  return `<h4>Shipment status matrix${label}</h4><p class="sub2">${uniq(S,x=>x.po)} POs in motion · ${S.length} shipment lines · ${usdK(sum(S,x=>x.value))} · tap a PO number to open it</p>${aiTable([{t:'Stage'},{t:'POs',c:1},{t:'Lines',c:1},{t:'Value',r:1},{t:'PO numbers'}],rows)}`;
+}
+function parseFilters(s){
+  const f={};
+  const AI_PRODUCTS=[...new Set(R.map(x=>x.product))].filter(Boolean);
+  const AI_BUYERS=[...new Set(R.map(x=>x.buyer))].filter(Boolean);
+  const yr=(s.match(/\b(20\d{2})\b/)||[])[1];if(yr)f.year=yr;
+  if(/\boverdue\b|\bdelayed?\b|\blate\b|behind/.test(s))f.state='Overdue';
+  else if(/\bcompleted?\b|\bdelivered\b|\bfulfil/.test(s)&&!/shipment/.test(s))f.state='Delivered - On Time';
+  else if(/\bon.?track\b|\bpending\b(?!.*approv)|\bopen\b|in.?process/.test(s))f.state='Pending - On Track';
+  if(/in.?transit|on the water|in motion|shipping now|on transit/.test(s))f.ship='In-transit';
+  else if(/ready for pick|awaiting pickup|ready to collect|pickup/.test(s))f.ship='Shipment ready for pick-up';
+  else if(/collected|forwarder pick/.test(s))f.ship='Collected by freight forwarder';
+  else if(/arrived in customs|at customs|in customs|customs clear/.test(s))f.ship='Arrived in Customs';
+  else if(/shipment completed|shipment done|delivered shipment|shipment complete/.test(s))f.ship='Completed';
+  if(/qc approved|quality approved|approved.*qc|passed qc/.test(s))f.qc='QC Approved';
+  else if(/awaiting.*approv|pending.*approv|qc pending|awaiting psm|not yet approv/.test(s))f.qc='Awaiting PSM Approval';
+  const tokens=s.split(/[^a-z0-9]+/).filter(Boolean);
+  const prod=aiFuzzyPick(AI_PRODUCTS,tokens);if(prod)f.product=prod;
+  const bf=AI_BUYERS.map(b=>({k:b.toLowerCase().split(' ')[0],full:b})).find(o=>o.k.length>2&&(tokens.includes(o.k)||tokens.some(t=>t.length>3&&aiLev(t,o.k)<=1)));
+  if(bf)f.buyer=bf.full;
+  if(/\bair\b|air freight|by air/.test(s))f.freight='air';else if(/\bsea\b|ocean|vessel|by sea/.test(s))f.freight='sea';
+  if(/\bfai\b|first article/.test(s))f.category='FAI';else if(/production/.test(s))f.category='Production';
+  if(/rm not available|material not available|raw material not|not available/.test(s))f.rm='Not Available';
+  if(/future/.test(s))f.future=true;
+  return f;
+}
+function parseFormat(s){
+  if(/\b(chart|graph|plot|pie|donut|doughnut|visual|trend|wise|breakdown|distribution|split)\b/.test(s))return 'chart';
+  if(/how many|count|number of|total value|total number|sum of|how much|value of|worth|just.*(figure|number|value)|only.*(figure|number|value)/.test(s))return 'count';
+  if(/\b(list|show|give|display|which|what are|find|all the|full)\b/.test(s))return 'list';
+  return 'auto';
+}
+function chartDim(s,f){
+  if(/product/.test(s)||f.product)return 'product';
+  if(/month|trend|time|monthly|over time/.test(s))return 'poMonth';
+  if(/buyer/.test(s)||f.buyer)return 'buyer';
+  if(/stage|pipeline|manufactur/.test(s))return 'stage';
+  if(/shipment|freight|transit/.test(s))return 'shipStatus';
+  if(/\bqc\b|quality/.test(s))return 'qcStatus';
+  if(/categor/.test(s)||f.category)return 'category';
+  if(/plant/.test(s))return 'plant';
+  if(/status|state/.test(s))return 'state';
+  return 'product';
+}
+const AI_DIMNAME={product:'product',poMonth:'month',buyer:'buyer',stage:'fulfilment stage',shipStatus:'shipment status',qcStatus:'QC status',category:'PO category',plant:'plant',state:'delivery status'};
+function answerQuery(qRaw){
+  const s=aiNormalize(qRaw);
+  const nums=qRaw.match(/\d{4,}/g)||[];
+  let poHit=nums.find(n=>R.some(x=>x.po===n));
+  if(!poHit){for(const n of nums){if(n.length>=4){const c=[...new Set(R.filter(x=>x.po.endsWith(n)).map(x=>x.po))];if(c.length===1){poHit=c[0];break;}}}}
+  if(poHit && !/^(chart|list|how|count|value|total)/.test(s)){aiCtx=null;const L=R.filter(x=>x.po===poHit);return {html:`<div class="aitrace">🔎 Found PO ${poHit} · ${L.length} line${L.length===1?'':'s'} · pulling every field</div>`+aiPO(poHit)};}
+  const followWord=/^(now|then|and|also|ok|okay|what about|how about|same|again|instead)\b|\b(as a|in a|make it a|show as|turn into|convert to)\b|\bchart it\b|\blist (them|those)\b|\b(those|them) (po|order|line|as)/.test(s);
+  const f0=parseFilters(s);
+  let f=f0,usedCtx=false;
+  if(followWord && aiCtx && aiCtx.f){f=Object.assign({},aiCtx.f,f0);usedCtx=true;}
+  let scope=R.slice(),desc=[];
+  if(f.year){scope=scope.filter(x=>x.poDate&&x.poDate.slice(0,4)===f.year);desc.push(f.year);}
+  if(f.state){scope=scope.filter(x=>x.state===f.state);desc.push(stateShort(f.state));}
+  if(f.ship){scope=scope.filter(x=>shipNorm(x.shipStatus)===shipNorm(f.ship));desc.push(f.ship);}
+  if(f.qc){scope=scope.filter(x=>x.qcStatus===f.qc);desc.push(f.qc);}
+  if(f.product){scope=scope.filter(x=>x.product===f.product);desc.push(f.product);}
+  if(f.buyer){scope=scope.filter(x=>x.buyer===f.buyer);desc.push(f.buyer);}
+  if(f.freight){scope=scope.filter(x=>new RegExp(f.freight,'i').test(x.freightType));desc.push(f.freight+' freight');}
+  if(f.category){scope=scope.filter(x=>(x.category||'').toLowerCase()===f.category.toLowerCase());desc.push(f.category);}
+  if(f.rm){scope=scope.filter(x=>x.rmStatus===f.rm);desc.push('RM '+f.rm);}
+  if(f.future){const t=new Date().toISOString().slice(0,10);scope=scope.filter(x=>(x.tfRaw&&/future po/i.test(x.tfRaw))||(x.poDate&&x.poDate>t));desc.push('future orders');}
+  const label=desc.length?' — '+desc.join(' · '):'';
+  let fmt=parseFormat(s);if(fmt==='auto'&&usedCtx&&aiCtx.fmt)fmt=aiCtx.fmt;
+  const statusFilter=f.state||f.ship||f.qc||f.freight||f.rm||f.future;
+  const groupFilter=f.product||f.buyer||f.category;
+  aiCtx={f,fmt};
+  const trace=`<div class="aitrace">🔎 Searched ${num(R.length)} lines · <b>${num(scope.length)}</b> matched${desc.length?' on '+aiEsc(desc.join(' · ')):''}${usedCtx?' · follow-up ↩':''}</div>`;
+  const wrap=res=>typeof res==='string'?trace+res:{html:trace+res.html,chart:res.chart};
+  if(!scope.length)return trace+`<p class="sub2">No lines matched${label||' that request'}. I checked status, product, buyer, freight, year and PO #. Try different wording or a PO number.</p>`;
+  if(fmt==='chart'){const dim=chartDim(s,f);return wrap(aiChart(scope,dim,'Value by '+(AI_DIMNAME[dim]||dim)+label));}
+  if(fmt==='count')return wrap(aiFigure(scope,s,label));
+  const lineLevel=/\bline\b|\bitem\b|line item|material list|list of material/.test(s);
+  if(statusFilter||fmt==='list'){return wrap(lineLevel?aiLineList(scope,'Lines'+label):aiPOList(scope,'POs'+label,(f.state==='Overdue'||f.ship||f.future)?(x=>x.pendValue):(x=>x.value)));}
+  if(groupFilter){return wrap(`<h4>${aiEsc(desc.join(' · '))}</h4>${aiFigure(scope,'value',label).replace(/^<h4>.*?<\/h4>/,'')}${aiGroupTable(scope,'stage','Current status','').replace(/^<h4><\/h4><p class="sub2">.*?<\/p>/,'')}`);}
+  if(/shipment|freight|transit|dispatch|awb/.test(s))return wrap(aiShipMatrix(scope,label));
+  if(/\bqc\b|quality/.test(s)){const QC=scope.filter(x=>x.qcStatus);return wrap(QC.length?aiGroupTable(QC,'qcStatus','QC status','QC status'+label):('No QC-status lines'+label+'.'));}
+  if(/how many|count|number|how much|value|worth|total/.test(s))return wrap(aiFigure(scope,s,label));
+  if(/summary|overview|dashboard|kpi|status|picture|health/.test(s))return wrap(`<h4>Book summary${label}</h4>${aiKpis(scope)}${aiGroupTable(scope,'product','Product','').replace(/^<h4><\/h4>/,'')}`);
+  return wrap(`<h4>Here's the picture${label}</h4><p class="sub2">Ask me to <b>list</b>, <b>count</b>, <b>chart</b> or get <b>full detail</b> — filter by status (overdue, in-transit, QC approved…), product, buyer, freight, year or a PO #. I also handle typos and follow-ups like "now as a chart".</p>${aiKpis(scope)}`);
+}
+
+function renderAI(){
+  $('#ttl').textContent='AI Status';$('#sub').textContent='Data analyst — understands typos, follow-ups & shows its search · text or voice';
+  const welcome=`<div class="aiwelcome">👋 I know every line in this book (${(ALLR&&ALLR.length)||R.length} rows). Ask me things like:<br>• <b>Status of PO ${R[0]?R[0].po:'3600…'}</b> — every field for that PO<br>• <b>Chart of 2026 product wise</b> — an interactive chart<br>• <b>Overdue POs</b> · <b>QC status</b> · <b>shipment status</b> · <b>completed POs</b><br>• <b>Blade summary</b> · <b>value by month</b> · <b>by buyer</b><br><br>Ask for a <b>chart</b> and you get only a chart; ask about anything else and you get the full details. Tap 🎤 to ask by voice.</div>`;
+  const welcomeExtra='';
+  $('#view').innerHTML=`<div class="card aiwrap">
+     <div class="aitop"><div><b>AI assistant</b> · <span style="color:var(--muted)">${((ALLR&&ALLR.length)||R.length)} lines loaded${yearFilter&&yearFilter!=='__ALL__'?' · year '+yearFilter:''}</span></div>${aiMsgs.length?'<button class="aiclear" onclick="aiClear()">Clear chat ✕</button>':''}</div>
+     <div class="aichat" id="aiChat">${aiMsgs.length?aiMsgs.map((m,i)=>`<div class="aimsg ${m.role}">${m.html}${m.chart?`<div class="aichartbox"><canvas id="aic${i}"></canvas></div>`:''}</div>`).join(''):welcome}</div>
+     <div class="aiinput"><button class="aimic" id="aiMic" onclick="aiMic()" title="Ask by voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></button>
+       <input id="aiQ" type="text" placeholder="Ask about a PO, product, status, or chart…" onkeydown="if(event.key==='Enter'){aiSend();}"/>
+       <button class="aisend" onclick="aiSend()">Ask</button></div></div>`;
+  const c=$('#aiChat');if(c)c.scrollTop=c.scrollHeight;const qi=$('#aiQ');if(qi&&aiMsgs.length)qi.focus();
+  if(aiMsgs.some(m=>m.chart))setTimeout(drawAICharts,40);
+}
+window.aiClear=()=>{aiMsgs=[];renderAI();};
+window.aiSend=()=>{const el=$('#aiQ');if(!el)return;const q=el.value.trim();if(!q)return;el.value='';aiAsk(q);};
+window.aiAsk=q=>{aiMsgs.push({role:'user',html:aiEsc(q)});let res;try{res=answerQuery(q);}catch(e){res='Sorry — I hit a snag answering that ('+aiEsc(e.message)+'). Try rephrasing.';}const msg={role:'bot'};if(typeof res==='string'){msg.html=res;}else{msg.html=res.html;msg.chart=res.chart;}aiMsgs.push(msg);if(view!=='ai')go('ai');else renderAI();};
+window.aiMic=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice input needs Chrome or Edge.',true);return;}const rec=new SR();rec.lang='en-US';rec.interimResults=false;rec.maxAlternatives=1;const b=$('#aiMic');if(b)b.classList.add('listening');toast('Listening… ask your question.');rec.onresult=e=>{aiAsk(e.results[0][0].transcript);};rec.onerror=ev=>{toast('Voice error: '+(ev.error||'no audio'),true);};rec.onend=()=>{if(b)b.classList.remove('listening');};try{rec.start();}catch(e){}};
+
+
 function go(v){view=v;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
-  ({overview:renderOverview,po:renderPO,prod:renderProd,aging:renderAging,qc:renderQC,ship:renderShip,data:renderData})[v]();window.scrollTo(0,0);}
+  ({overview:renderOverview,po:renderPO,prod:renderProd,aging:renderAging,qc:renderQC,ship:renderShip,ai:renderAI,data:renderData})[v]();window.scrollTo(0,0);}
 document.querySelectorAll('#nav button').forEach(b=>b.onclick=()=>go(b.dataset.v));
 window.openPO=po=>{curPO=po;curPOStat='__ALL__';go('po');};
 window.openMat=mid=>{const rec=R.find(x=>x.material===mid);if(rec){curProd='__ALL__';curMat=mid;curProdStat='__ALL__';go('prod');}};
