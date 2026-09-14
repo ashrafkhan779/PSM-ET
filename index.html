@@ -283,6 +283,12 @@ td.mdesc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellips
 .dsw{width:13px;height:13px;border-radius:3px;flex:none;margin-top:3px}
 .dll{font-size:13px;font-weight:600;color:var(--ink)}
 .dlv{font-size:11.5px;color:var(--muted);font-family:var(--mono);margin-top:1px}
+.exsum .exhead{font:700 18px var(--disp);color:var(--ink);margin-bottom:8px;letter-spacing:-.01em}
+.exsum h4{margin:16px 0 6px;font:600 14px var(--disp);color:var(--ink)}
+.exsum .exul{margin:6px 0 4px;padding-left:18px;display:flex;flex-direction:column;gap:6px}
+.exsum .exul li{font-size:13px;line-height:1.5;color:var(--slate)}
+.dark .exsum .exul li{color:var(--ink)}
+.exsum .exnote{font-size:11px;color:var(--muted);margin-top:12px;font-style:italic}
 </style>
 </head>
 <body>
@@ -1143,8 +1149,64 @@ function chartDim(s,f){
   return 'product';
 }
 const AI_DIMNAME={product:'product',poMonth:'month',buyer:'buyer',stage:'fulfilment stage',shipStatus:'shipment status',qcStatus:'QC status',category:'PO category',plant:'plant',state:'delivery status'};
+function aiMedian(a){if(!a.length)return 0;const s=a.slice().sort((x,y)=>x-y);const m=Math.floor(s.length/2);return s.length%2?s[m]:(s[m-1]+s[m])/2;}
+function aiExecSummary(){
+  const book=sum(R,x=>x.value),pend=sum(R,x=>x.pendValue);
+  const deliv=R.filter(x=>x.state==='Delivered - On Time'),delivVal=sum(deliv,x=>x.value);
+  const over=R.filter(x=>x.state==='Overdue'),overVal=sum(over,x=>x.pendValue);
+  const pos=uniq(R,x=>x.po),lines=R.length;
+  const shipped=R.filter(x=>x.actShip);
+  const onP=shipped.filter(x=>x.expShip&&x.actShip<=x.expShip).length;
+  const onR=shipped.filter(x=>x.reqDate&&x.actShip<=x.reqDate).length;
+  const pctP=shipped.length?onP/shipped.length*100:0,pctR=shipped.length?onR/shipped.length*100:0;
+  const medReq=aiMedian(shipped.filter(x=>x.reqDate).map(x=>(Date.parse(x.actShip)-Date.parse(x.reqDate))/864e5));
+  const noP=R.filter(x=>x.pendValue>0&&!x.expShip),noPVal=sum(noP,x=>x.pendValue);
+  const ready=R.filter(x=>x.stage==='Material Ready to Ship'&&x.pendValue>0),readyVal=sum(ready,x=>x.pendValue);
+  const readyQC=ready.filter(x=>x.qcStatus==='Awaiting PSM Approval'),readyQCVal=sum(readyQC,x=>x.pendValue);
+  const today=Date.parse(new Date().toISOString().slice(0,10));
+  const dueIn=d=>sum(R.filter(x=>{if(x.pendValue<=0||x.state==='Overdue')return false;const eta=x.revShip||x.expShip;let dd=x.remaining!=null?x.remaining:(eta?Math.round((Date.parse(eta)-today)/864e5):null);return dd!=null&&dd>=0&&dd<=d;}),x=>x.pendValue);
+  const due30=dueIn(30),due90=dueIn(90);
+  const avgDelay=over.length?sum(over,x=>x.delay)/over.length:0,maxDelay=over.length?Math.max(...over.map(x=>x.delay||0)):0;
+  const ovProd={};over.forEach(x=>ovProd[x.product]=(ovProd[x.product]||0)+x.pendValue);
+  const topP=Object.entries(ovProd).sort((a,b)=>b[1]-a[1])[0]||['—',0];
+  const ovStage={};over.forEach(x=>{const r=(x.remarks||'—').trim();ovStage[r]=(ovStage[r]||0)+1;});
+  const topS=Object.entries(ovStage).sort((a,b)=>b[1]-a[1])[0]||['—',0];
+  const both=R.filter(x=>x.pendValue>0&&x.expShip&&x.reqDate),rebase=both.filter(x=>x.expShip>x.reqDate);
+  const rebasePct=both.length?rebase.length/both.length*100:0,rebaseVal=sum(rebase,x=>x.pendValue);
+  const rebaseSlip=aiMedian(rebase.map(x=>(Date.parse(x.expShip)-Date.parse(x.reqDate))/864e5));
+  const noPReq=noP.map(x=>x.reqDate).filter(Boolean).sort();
+  const orderQ=sum(R,x=>x.orderQty),delivQ=sum(R,x=>x.delivQty);
+  const yetStart=sum(R.filter(x=>x.pendValue>0&&/yet to start/i.test(x.remarks||'')),x=>x.pendValue);
+  const openLines=R.filter(x=>x.pendValue>0),withPromise=openLines.filter(x=>x.expShip).length;
+  const cl=(v)=>Math.max(0,Math.min(100,Math.round(v)));
+  const sc={delivery:cl(100-(pend>0?overVal/pend*100:0)*4),schedule:cl(pctP),momentum:cl(pend>0?(1-yetStart/pend)*100:0),dataq:cl(openLines.length?withPromise/openLines.length*100:0)};
+  const overall=cl(0.35*sc.delivery+0.25*sc.schedule+0.2*sc.momentum+0.2*sc.dataq);
+  const band=overall>=70?'Healthy':overall>=50?'Watch':'Critical';
+  return `<div class="exsum">
+    <div class="exhead">${usdK(book)} on order · ${usdK(pend)} pending · ${usdK(overVal)} overdue</div>
+    <p class="sub2">${usdK(book)} on order across ${num(pos)} POs and ${num(lines)} lines. ${usdK(delivVal)} (${(delivVal/book*100).toFixed(0)}%) has shipped; ${usdK(pend)} is still to deliver.</p>
+    <p class="sub2">ET has shipped ${pctP.toFixed(0)}% of delivered lines on or before its own promised date, but only ${pctR.toFixed(0)}% on or before the date PSM originally required (median ${medReq>=0?'+':''}${medReq.toFixed(1)}d vs requirement).</p>
+    <ul class="exul">
+      <li><b>Overall health ${overall} (${band})</b>: delivery ${sc.delivery}, schedule confidence ${sc.schedule}, pipeline momentum ${sc.momentum}, data quality ${sc.dataq}.</li>
+      <li>${num(over.length)} lines overdue (${usdK(overVal)}, avg ${Math.round(avgDelay)}d); ${num(noP.length)} lines without a promised date (${usdK(noPVal)}).</li>
+      <li>${usdK(readyVal)} ready to ship, of which ${usdK(readyQCVal)} awaits PSM QC approval.</li>
+      <li>${usdK(due30)} due in the next 30 days, ${usdK(due90)} in 90.</li></ul>
+    <h4>Top risks</h4>
+    <ul class="exul">
+      <li><b>Re-baselined commitments.</b> ${rebasePct.toFixed(0)}% of pending lines with both dates carry a promised date later than PSM's required date (median slip ${Math.round(rebaseSlip)} days, ${usdK(rebaseVal)} of value). "On time" in the tracker means on time to the new promise, not the original need.</li>
+      <li><b>${num(over.length)} lines overdue — ${usdK(overVal)}.</b> Average ${Math.round(avgDelay)} days late, longest ${maxDelay}. ${topP[0]} carries ${usdK(topP[1])} (${overVal>0?(topP[1]/overVal*100).toFixed(0):0}%) of overdue value; most overdue lines sit at "${topS[0]}" (${topS[1]}).</li>
+      <li><b>${usdK(noPVal)} without a promised date.</b> ${num(noP.length)} lines have no ET promised date, so they sit outside every aging view.${noPReq.length?' Requirement dates run '+fmtd(noPReq[0])+' – '+fmtd(noPReq[noPReq.length-1])+'.':''}</li></ul>
+    <h4>Actions, by value at stake</h4>
+    <ul class="exul">
+      <li><b>Release the QC gate:</b> chase PSM approval on ${num(readyQC.length)} lines (${usdK(readyQCVal)}) sitting ready to ship.</li>
+      <li><b>Recover overdue lines:</b> issue revised RTS dates for ${num(over.length)} lines (${usdK(overVal)}); prioritise by value × days late in the Aging table.</li>
+      <li><b>Close the unconfirmed gap:</b> obtain ET promised dates for ${num(noP.length)} lines (${usdK(noPVal)}) so the aging view is complete.</li>
+      <li><b>Report both clocks:</b> present on-time vs PSM requirement (${pctR.toFixed(0)}%) alongside on-time vs promise (${pctP.toFixed(0)}%) in every review, so re-baselining stays visible.</li></ul>
+    <p class="exnote">Health is a heuristic blend: delivery (overdue burden vs pending), schedule confidence (on-time to promise), pipeline momentum (value past "Yet to Start") and data quality (share of open lines with a promised date).</p></div>`;
+}
 function answerQuery(qRaw){
   const s=aiNormalize(qRaw);
+  if(/\bexecutive\b|exec summary|leadership (summary|brief|report)|board (summary|report)|management summary|briefing|health check|health score|full (summary|report)/.test(s))return aiExecSummary();
   const nums=qRaw.match(/\d{4,}/g)||[];
   let poHit=nums.find(n=>R.some(x=>x.po===n));
   if(!poHit){for(const n of nums){if(n.length>=4){const c=[...new Set(R.filter(x=>x.po.endsWith(n)).map(x=>x.po))];if(c.length===1){poHit=c[0];break;}}}}
@@ -1186,7 +1248,7 @@ function answerQuery(qRaw){
 
 function renderAI(){
   $('#ttl').textContent='AI Assistant';$('#sub').textContent='Data analyst — understands typos, follow-ups & shows its search · text or voice';
-  const welcome=`<div class="aiwelcome">👋 I know every line in this book (${(ALLR&&ALLR.length)||R.length} rows). Ask me things like:<br>• <b>Status of PO ${R[0]?R[0].po:'3600…'}</b> — every field for that PO<br>• <b>Chart of 2026 product wise</b> — an interactive chart<br>• <b>Overdue POs</b> · <b>QC status</b> · <b>shipment status</b> · <b>completed POs</b><br>• <b>Blade summary</b> · <b>value by month</b> · <b>by buyer</b><br><br>Ask for a <b>chart</b> and you get only a chart; ask about anything else and you get the full details. Tap 🎤 to ask by voice.</div>`;
+  const welcome=`<div class="aiwelcome">👋 I know every line in this book (${(ALLR&&ALLR.length)||R.length} rows). Ask me things like:<br>• <b>Status of PO ${R[0]?R[0].po:'3600…'}</b> — every field for that PO<br>• <b>Chart of 2026 product wise</b> — an interactive chart<br>• <b>Overdue POs</b> · <b>QC status</b> · <b>shipment status</b> · <b>completed POs</b><br>• <b>Executive summary</b> — full leadership briefing with health score &amp; actions<br>• <b>Blade summary</b> · <b>value by month</b> · <b>by buyer</b><br><br>Ask for a <b>chart</b> and you get only a chart; ask about anything else and you get the full details. Tap 🎤 to ask by voice.</div>`;
   const welcomeExtra='';
   $('#view').innerHTML=`<div class="card aiwrap">
      <div class="aitop"><div><b>AI assistant</b> · <span style="color:var(--muted)">${((ALLR&&ALLR.length)||R.length)} lines loaded${yearFilter&&yearFilter!=='__ALL__'?' · year '+yearFilter:''}</span></div>${aiMsgs.length?'<button class="aiclear" onclick="aiClear()">Clear chat ✕</button>':''}</div>
