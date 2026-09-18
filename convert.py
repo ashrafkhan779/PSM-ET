@@ -96,6 +96,8 @@ def main(path):
             unitPrice=float(pd.to_numeric(g('Unit Price','Net Price').iloc[i],errors='coerce')) if not pd.isna(pd.to_numeric(g('Unit Price','Net Price').iloc[i],errors='coerce')) else 0.0,
             currency=str(g('Currency').iloc[i]).strip() if col(df,'Currency') and not pd.isna(g('Currency').iloc[i]) else '',
             qcStatus=str(g('QC Status').iloc[i]).strip() if col(df,'QC Status') and not pd.isna(g('QC Status').iloc[i]) else '',
+            qcSubmitted=ds(to_date(g('QC Submitted date').iloc[i])) if col(df,'QC Submitted date') else None,
+            qcApproved=ds(to_date(g('QC Approval date').iloc[i])) if col(df,'QC Approval date') else None,
             shipStatus=str(g('Shipment Status').iloc[i]).strip() if col(df,'Shipment Status') and not pd.isna(g('Shipment Status').iloc[i]) else '',
             freightType=str(g('Freight Type').iloc[i]).strip() if col(df,'Freight Type') and not pd.isna(g('Freight Type').iloc[i]) else '',
             freightPO=str(g('Freight PO').iloc[i]).strip() if col(df,'Freight PO') and not pd.isna(g('Freight PO').iloc[i]) else '',
