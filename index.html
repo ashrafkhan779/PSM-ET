@@ -273,6 +273,7 @@ td.mdesc{max-width:260px;white-space:nowrap;overflow:hidden;text-overflow:ellips
 .dark .pochip{color:var(--ink)}
 .aitrace{font-size:11px;color:var(--muted);font-family:var(--mono);background:var(--panel2);border:1px solid var(--line);border-radius:8px;padding:6px 10px;margin-bottom:10px;display:inline-block}
 .aitrace b{color:var(--ember)}
+.trtxt{font-size:14px;line-height:1.6;color:var(--ink)}.trtxt b{color:var(--ink);font-weight:700}
 .agechart{display:flex;flex-direction:column;gap:6px;margin-top:6px}
 .agerow{display:grid;grid-template-columns:112px 1fr 78px;align-items:center;gap:12px;cursor:pointer}
 .agerow .agel{text-align:right;font-size:13px;color:var(--slate);font-weight:500}
@@ -1037,19 +1038,32 @@ function aiFuzzyPick(list,tokens){for(const it of list){const w=String(it).toLow
 function aiEsc(s){return String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));}
 const AI_PALETTE=['#E0602B','#3A76B8','#1E8A6E','#6B5CA5','#C08A2E','#2AA6A6','#C63F27','#4C617D','#B8573F','#5B8C3E','#8A5CB0','#2E7DA8'];
 async function ensureChartJS(){if(!window.Chart)await loadScript('https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js');}
+function aihFmt(unit){return unit==='qty'||unit==='count'?(v=>Math.round(v).toLocaleString()):unit==='pct'?(v=>(+v).toFixed(1)+'%'):(v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+Math.round(v/1e3)+'K':'$'+Math.round(v));}
+function aihLabelPlugin(fmt){return {id:'dl',afterDatasetsDraw(chart){const ctx=chart.ctx;const dark=document.documentElement.classList.contains('dark');ctx.save();ctx.font='700 10px "IBM Plex Mono",ui-monospace,monospace';const type=chart.config.type,horiz=chart.options.indexAxis==='y';
+  chart.data.datasets.forEach((d,di)=>{const meta=chart.getDatasetMeta(di);if(meta.hidden)return;meta.data.forEach((el,i)=>{let v=d.data[i];if(v&&typeof v==='object')v=v.y;if(v==null||(type!=='line'&&!v))return;const t=fmt(v);
+    if(type==='doughnut'||type==='pie'){const p=el.tooltipPosition();ctx.fillStyle='#fff';ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(t,p.x,p.y);return;}
+    if(type==='scatter')return;
+    ctx.fillStyle=dark?'#C4D0DE':'#33415C';
+    if(horiz){ctx.textAlign='left';ctx.textBaseline='middle';ctx.fillText(t,el.x+5,el.y);}
+    else{ctx.textAlign='center';ctx.textBaseline='bottom';ctx.fillText(t,el.x,el.y-4);}});});
+  ctx.restore();}};}
 function aiChartConfig(spec){
   const dark=document.documentElement.classList.contains('dark');
   const tc=dark?'#C4D0DE':'#4C617D',grid=dark?'rgba(255,255,255,.08)':'rgba(0,0,0,.06)';
-  const {type,labels,values}=spec;
-  const colors=labels.map((_,i)=>AI_PALETTE[i%AI_PALETTE.length]);
-  const total=values.reduce((s,v)=>s+v,0)||1;
-  const fmt=v=>v>=1e6?'$'+(v/1e6).toFixed(2)+'M':v>=1e3?'$'+Math.round(v/1e3)+'K':'$'+Math.round(v);
-  const common={responsive:true,maintainAspectRatio:false,animation:{duration:800,easing:'easeOutQuart'}};
-  if(type==='doughnut')return {type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:dark?'#18222F':'#fff',borderWidth:2,hoverOffset:10}]},options:{...common,cutout:'60%',plugins:{legend:{position:'right',labels:{color:tc,font:{size:12},padding:12,usePointStyle:true}},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmt(c.raw)+' ('+(c.raw/total*100).toFixed(1)+'%)'}}}}};
-  if(type==='line')return {type:'line',data:{labels,datasets:[{label:'PO value',data:values,borderColor:'#3A76B8',backgroundColor:'rgba(58,118,184,.16)',fill:true,tension:.35,pointRadius:3,pointHoverRadius:5,pointBackgroundColor:'#3A76B8',borderWidth:2.5}]},options:{...common,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:tc,maxRotation:45},grid:{display:false}},y:{ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}}};
-  return {type:'bar',data:{labels,datasets:[{label:'Value',data:values,backgroundColor:colors,borderRadius:7,maxBarThickness:52}]},options:{...common,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:tc,autoSkip:false,maxRotation:40},grid:{display:false}},y:{ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}}};
+  const {type,labels,values,unit,horiz,datasets,points}=spec;
+  const colors=(labels||[]).map((_,i)=>AI_PALETTE[i%AI_PALETTE.length]);
+  const total=(values||[]).reduce((s,v)=>s+v,0)||1;
+  const fmt=aihFmt(unit);const DL=aihLabelPlugin(fmt);
+  const common={responsive:true,maintainAspectRatio:false,animation:{duration:700,easing:'easeOutQuart'},layout:{padding:{right:horiz?58:10,top:16}}};
+  if(type==='scatter')return {type:'scatter',data:{datasets:[{data:points,backgroundColor:'#3A76B8',pointRadius:3,pointHoverRadius:5}]},options:{...common,plugins:{legend:{display:false},tooltip:{callbacks:{label:c=>'('+aihFmt(spec.xunit)(c.raw.x)+', '+fmt(c.raw.y)+')'}}},scales:{x:{title:{display:true,text:spec.xlabel||'',color:tc},ticks:{color:tc,callback:v=>aihFmt(spec.xunit)(v)},grid:{color:grid}},y:{title:{display:true,text:spec.ylabel||'',color:tc},ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}}};
+  if(type==='doughnut')return {type:'doughnut',data:{labels,datasets:[{data:values,backgroundColor:colors,borderColor:dark?'#18222F':'#fff',borderWidth:2,hoverOffset:10}]},options:{...common,cutout:'56%',plugins:{legend:{position:'right',labels:{color:tc,font:{size:11},padding:9,usePointStyle:true}},tooltip:{callbacks:{label:c=>' '+c.label+': '+fmt(c.raw)+' ('+(c.raw/total*100).toFixed(1)+'%)'}}}},plugins:[DL]};
+  if(type==='line')return {type:'line',data:{labels,datasets:(datasets||[{label:spec.slabel||'value',data:values}]).map((d,i)=>({label:d.label,data:d.data,borderColor:d.color||AI_PALETTE[i%AI_PALETTE.length],backgroundColor:(d.color||AI_PALETTE[i%AI_PALETTE.length])+'26',fill:!datasets,tension:.35,pointRadius:3,pointBackgroundColor:d.color||AI_PALETTE[i%AI_PALETTE.length],borderWidth:2.4}))},options:{...common,plugins:{legend:{display:!!datasets,labels:{color:tc,usePointStyle:true}},tooltip:{callbacks:{label:c=>fmt(c.raw)}}},scales:{x:{ticks:{color:tc,maxRotation:45},grid:{display:false}},y:{ticks:{color:tc,callback:v=>fmt(v)},grid:{color:grid}}}},plugins:datasets?[]:[DL]};
+  const ds=datasets?datasets.map((d,i)=>({label:d.label,data:d.data,backgroundColor:d.color||AI_PALETTE[i%AI_PALETTE.length],borderRadius:5,maxBarThickness:48})):[{data:values,backgroundColor:colors,borderRadius:6,maxBarThickness:54}];
+  const stacked=!!spec.stacked;
+  return {type:'bar',data:{labels,datasets:ds},options:{...common,indexAxis:horiz?'y':'x',plugins:{legend:{display:!!datasets,labels:{color:tc,usePointStyle:true}},tooltip:{callbacks:{label:c=>(datasets?c.dataset.label+': ':'')+fmt(c.raw)}}},scales:{x:{stacked,ticks:{color:tc,autoSkip:false,maxRotation:horiz?0:40,callback:horiz?(v=>fmt(v)):undefined},grid:{display:!!horiz,color:grid}},y:{stacked,ticks:{color:tc,callback:horiz?undefined:(v=>fmt(v))},grid:{display:!horiz,color:grid}}}},plugins:[DL]};
 }
-function drawAICharts(){ensureChartJS().then(()=>{aiMsgs.forEach((m,i)=>{if(m.chart){const cv=document.getElementById('aic'+i);if(cv){try{const ex=window.Chart.getChart&&window.Chart.getChart(cv);if(ex)ex.destroy();new window.Chart(cv,aiChartConfig(m.chart));}catch(e){}}}});}).catch(()=>toast('Could not load the chart library (offline?).',true));}
+function drawChartsFor(msgs,pre){ensureChartJS().then(()=>{msgs.forEach((m,i)=>{if(m.chart){const cv=document.getElementById(pre+i);if(cv){try{const ex=window.Chart.getChart&&window.Chart.getChart(cv);if(ex)ex.destroy();new window.Chart(cv,aiChartConfig(m.chart));}catch(e){}}}});}).catch(()=>toast('Could not load the chart library (offline?).',true));}
+function drawAICharts(){drawChartsFor(aiMsgs,'aic');}
 function aiChart(scope,dim,title){
   const key=x=>({product:x.product,stage:x.stage,state:stateShort(x.state),buyer:x.buyer||'—',category:x.category||'—',poMonth:x.poMonth,plant:x.plant,rmStatus:x.rmStatus||'—',qcStatus:x.qcStatus||'—',shipStatus:x.shipStatus||'—'}[dim])||'—';
   const map={};scope.forEach(x=>{const k=key(x);(map[k]=map[k]||{v:0,q:0,n:0});map[k].v+=x.value;map[k].q+=x.orderQty;map[k].n++;});
@@ -1224,8 +1238,128 @@ function aiExecSummary(){
       <li><b>Report both clocks:</b> present on-time vs PSM requirement (${pctR.toFixed(0)}%) alongside on-time vs promise (${pctP.toFixed(0)}%) in every review, so re-baselining stays visible.</li></ul>
     <p class="exnote">Health is a heuristic blend: delivery (overdue burden vs pending), schedule confidence (on-time to promise), pipeline momentum (value past "Yet to Start") and data quality (share of open lines with a promised date).</p></div>`;
 }
+/* ========== TRAINING-ALIGNED ANSWER ENGINE (from aa.xlsx) ========== */
+const TR={deliv:x=>/shipped|delivered|complete/i.test(x.stage||''),
+  over:x=>!TR.deliv(x)&&/delay/i.test(x.tfRaw||''),
+  onTrack:x=>!TR.deliv(x)&&!TR.over(x),
+  dday:x=>{if(!/delay/i.test(x.tfRaw||''))return null;const m=(x.tfRaw||'').match(/(\d+)\s*days?/i);return m?+m[1]:null;},
+  rday:x=>{if(!/remain/i.test(x.tfRaw||''))return null;const m=(x.tfRaw||'').match(/(\d+)\s*days?/i);return m?+m[1]:null;}};
+const usdF=n=>'USD '+(n||0).toLocaleString('en-US',{minimumFractionDigits:2,maximumFractionDigits:2});
+function trK(recs){recs=recs||R;const D=recs.filter(TR.deliv),O=recs.filter(TR.over),TK=recs.filter(TR.onTrack);
+  return {recs,D,O,TK,book:sum(recs,x=>x.value),deliv:sum(D,x=>x.value),over:sum(O,x=>x.value),
+    pend:sum(recs,x=>x.value)-sum(D,x=>x.value),qty:sum(recs,x=>x.orderQty),dq:sum(D,x=>x.orderQty),
+    oq:sum(O,x=>x.orderQty),pos:uniq(recs,x=>x.po),lines:recs.length,mats:uniq(recs,x=>x.material)};}
+function trTxt(t){return `<div class="trtxt">${t}</div>`;}
+function trChart(recs,keyfn,metric,title){const g={};recs.forEach(x=>{const k=keyfn(x);if(!k)return;(g[k]=g[k]||{v:0,q:0,d:0,dq:0});g[k].v+=x.value;g[k].q+=x.orderQty;if(TR.deliv(x)){g[k].d+=x.value;g[k].dq+=x.orderQty;}});
+  const ent=Object.entries(g);const vf=metric==='qty'?(o=>o.q):metric==='pending'?(o=>o.v-o.d):metric==='completion'?(o=>o.q?o.dq/o.q*100:0):(o=>o.v);
+  const labels=ent.map(e=>e[0]),values=ent.map(e=>vf(e[1]));const order=labels.map((l,i)=>[l,values[i]]).sort((a,b)=>b[1]-a[1]);
+  return {html:`<h4>${aiEsc(title)}</h4><p class="sub2">${recs.length} lines · as of ${M.generated||'today'}</p>`,chart:{type:order.length<=8?'bar':'bar',labels:order.map(o=>o[0]),values:order.map(o=>o[1])}};}
+function trList(recs,title){if(!recs.length)return trTxt('<b>'+aiEsc(title)+'</b><br>No matching lines.');
+  const rows=recs.slice(0,400).map(x=>`<tr onclick="openPO('${x.po}')"><td class="mono">${x.po}</td><td class="center mono">${x.line??'—'}</td><td class="mono">${aiEsc(x.material)}</td><td class="mdesc" title="${aiEsc(x.desc)}">${aiEsc(x.desc)}</td><td>${aiEsc(x.product)}</td><td class="right mono">${num(x.orderQty)}</td><td class="right mono">${usd(x.value)}</td><td>${aiEsc(x.stage)}</td><td style="font-size:11px">${aiEsc(x.tfRaw||'—')}</td></tr>`).join('');
+  return `<h4>${aiEsc(title)}</h4><p class="sub2">${recs.length} lines · ${uniq(recs,x=>x.po)} POs · ${usdF(sum(recs,x=>x.value))}${recs.length>400?' · first 400 shown':''}</p><div class="tablewrap"><table><thead><tr><th>PO #</th><th class="center">Line</th><th>Material</th><th>Description</th><th>Product</th><th class="right">Qty</th><th class="right">Value</th><th>Current Status</th><th>Time Frame</th></tr></thead><tbody>${rows}</tbody></table></div>`;}
+function trProdList(){return [...new Set(R.map(x=>x.product))].filter(Boolean);}
+function trStageList(){return [...new Set(R.map(x=>(x.remarks||'').trim()))].filter(Boolean);}
+function trFindProduct(s){const P=trProdList();const t=s.split(/[^a-z0-9]+/).filter(Boolean);for(const p of P){if(t.includes(p.toLowerCase()))return p;}for(const p of P){for(const w of p.toLowerCase().split(/[^a-z0-9]+/))if(w.length>3&&t.some(x=>x.length>3&&aiLev(x,w)<=1))return p;}return null;}
+function trFindStage(s){const S=trStageList();for(const st of S){if(s.includes(st.toLowerCase()))return st;}return null;}
+function trFindBuyer(s){const B=[...new Set(R.map(x=>x.buyer))].filter(Boolean);for(const b of B){if(s.includes(b.toLowerCase().split(' ')[0])&&b.split(' ')[0].length>2)return b;}return null;}
+const TR_BUCKETS=[['due <=15|due 15|next 15|within 15',0,15,'Due ≤15d'],['16-30|16 to 30|next 30',16,30,'16–30d'],['31-45|31 to 45',31,45,'31–45d'],['46-60|46 to 60',46,60,'46–60d'],['61-90|61 to 90',61,90,'61–90d'],['90d\\+|over 90|90 days plus|beyond 90',91,1e9,'90d+']];
+function trAgeDays(x){const r=TR.rday(x);if(r!=null)return r;if(x.remaining!=null)return x.remaining;const eta=x.revShip||x.expShip;if(eta)return Math.round((Date.parse(eta)-Date.parse(new Date().toISOString().slice(0,10)))/864e5);return null;}
+function trAns(qRaw){
+  const s=aiNormalize(qRaw);
+  const K=trK(R);const cur=(R[0]&&R[0].currency)||'USD';
+  /* ---------- definitions / assistant rules ---------- */
+  if(/what does revenue mean|is this revenue|revenue in this|revenue.*dashboard/.test(s))return trTxt('<b>Order value, not accounting revenue.</b> Figures sum <b>Total Value</b> (Order Quantity × Unit Price) across PO lines — a committed order-book value in '+cur+'. It is not recognised revenue unless you confirm otherwise.');
+  if(/how is total value|how is order value|total value calc/.test(s))return trTxt('<b>Total Value = Order Quantity × Unit Price</b>, treated as order value. Summing it gives the order-book value.');
+  if(/define delivered|what (is|counts as) delivered|how.*delivered.*defined/.test(s))return trTxt('<b>Delivered</b> = Current Status contains <b>Shipped, Delivered or Complete</b>. Used for both quantity and value completion.');
+  if(/define pending|what (is|counts as) pending|how.*pending.*defined/.test(s))return trTxt('<b>Pending</b> = <b>not Delivered</b>. Pending qty/value = the line qty/value for open lines, else zero.');
+  if(/define overdue|what (is|counts as) overdue|what makes.*overdue|how.*overdue.*defined/.test(s))return trTxt('<b>Overdue</b> = <b>not Delivered</b> AND <b>Time Frame contains "Delay"</b>. Already-shipped lines are never overdue even if readiness was late.');
+  if(/define on.?track|what (is|counts as) on.?track/.test(s))return trTxt('<b>On track</b> = <b>not Delivered</b> AND <b>not Overdue</b>. Includes pending lines with future dates and unconfirmed promise dates.');
+  if(/(define|how.*count).*po count|po count.*defined/.test(s))return trTxt('<b>PO count</b> = distinct <b>PSM PO#</b> values. Line count is never substituted.');
+  /* ---------- charts ---------- */
+  if(/chart|graph|plot|visual|wise|breakdown|donut|pie|bar of/.test(s)){
+    const metric=/pending/.test(s)?'pending':/quantity|units|qty/.test(s)?'qty':/completion|percent/.test(s)?'completion':'value';
+    let keyfn=null,dim='product';
+    if(/product/.test(s)){keyfn=x=>x.product;dim='product';}
+    else if(/buyer/.test(s)){keyfn=x=>x.buyer||'—';dim='buyer';}
+    else if(/stage|manufactur|remark/.test(s)){keyfn=x=>(x.remarks||'—').trim();dim='stage';}
+    else if(/status|state/.test(s)){keyfn=x=>x.stage;dim='current status';}
+    else if(/categor/.test(s)){keyfn=x=>x.category||'—';dim='PO category';}
+    else if(/month/.test(s)){keyfn=x=>x.poMonth;dim='month';}
+    else {keyfn=x=>x.product;dim='product';}
+    const tt=(metric==='pending'?'Pending value':metric==='qty'?'Order quantity':metric==='completion'?'Completion %':'Order value')+' by '+dim;
+    return trChart(R,keyfn,metric,tt);
+  }
+  /* ---------- PO ---------- */
+  const nums=qRaw.match(/\d{4,}/g)||[];const po=nums.find(n=>R.some(x=>x.po===n))||(nums.map(n=>[...new Set(R.filter(x=>x.po.endsWith(n)).map(x=>x.po))]).find(a=>a.length===1)||[])[0];
+  if(po){const L=R.filter(x=>x.po===po);const k=trK(L);
+    if(/overdue|delay|late/.test(s))return trTxt('<b>PO '+po+'</b>: '+(k.O.length?k.O.length+' overdue line(s) worth '+usdF(k.over):'no overdue lines')+'.');
+    if(/pending|open/.test(s))return trTxt('<b>PO '+po+'</b> pending: '+usdF(k.pend)+' across '+(L.length-k.D.length)+' open line(s) ('+num(k.qty-k.dq)+' units).');
+    if(/value|worth|total/.test(s))return trTxt('<b>PO '+po+'</b> order value: '+usdF(k.book)+' across '+L.length+' lines ('+num(k.qty)+' units).');
+    return aiPO(po);}
+  /* ---------- buyer ---------- */
+  const buyer=trFindBuyer(s);
+  if(buyer){const L=R.filter(x=>x.buyer===buyer);const k=trK(L);
+    if(/overdue|exposure/.test(s))return trTxt('<b>'+aiEsc(buyer)+'</b> overdue exposure: '+usdF(k.over)+' ('+k.O.length+' lines).');
+    if(/pending/.test(s))return trTxt('<b>'+aiEsc(buyer)+'</b> pending value: '+usdF(k.pend)+' ('+(L.length-k.D.length)+' open lines).');
+    if(/how many po|po.*manage|number of po/.test(s))return trTxt('<b>'+aiEsc(buyer)+'</b> manages '+k.pos+' POs ('+L.length+' lines).');
+    return trTxt('<b>Buyer '+aiEsc(buyer)+'</b>: '+k.pos+' POs · '+L.length+' lines · '+usdF(k.book)+' order value · '+usdF(k.pend)+' pending · '+usdF(k.over)+' overdue.');}
+  /* ---------- manufacturing stage (Remarks) ---------- */
+  if(/stage|yet to start|machining|forging|inspection|pickup|qc approval|completed stage|post machining|awaiting qc/.test(s)){
+    const st=trFindStage(s);if(st){const L=R.filter(x=>(x.remarks||'').trim().toLowerCase()===st.toLowerCase());const k=trK(L);
+      if(/how many po|number of po/.test(s))return trTxt('<b>'+aiEsc(st)+'</b>: '+k.pos+' POs.');
+      if(/value/.test(s))return trTxt('<b>'+aiEsc(st)+'</b> value: '+usdF(k.book)+' ('+L.length+' lines).');
+      if(/how many line|lines/.test(s))return trTxt('<b>'+aiEsc(st)+'</b>: '+L.length+' lines across '+k.pos+' POs.');
+      return trTxt('<b>Stage — '+aiEsc(st)+'</b>: '+L.length+' lines · '+k.pos+' POs · '+num(k.qty)+' units · '+usdF(k.book)+'.');}}
+  /* ---------- aging buckets ---------- */
+  for(const [re,lo,hi,lab] of TR_BUCKETS){if(new RegExp(re,'i').test(s)){const L=K.TK.filter(x=>{const d=trAgeDays(x);return d!=null&&d>=lo&&d<=hi;});
+    if(/how many po|number of po/.test(s))return trTxt('<b>'+lab+'</b>: '+uniq(L,x=>x.po)+' POs.');
+    return trTxt('<b>'+lab+' bucket</b>: '+usdF(sum(L,x=>x.value))+' across '+L.length+' lines · '+uniq(L,x=>x.po)+' POs · '+num(sum(L,x=>x.orderQty))+' units.');}}
+  /* ---------- product ---------- */
+  const prod=trFindProduct(s);
+  if(prod){const L=R.filter(x=>x.product===prod);const k=trK(L);
+    if(/completion|percent/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b> completion: '+(k.qty?(k.dq/k.qty*100).toFixed(1):'0.0')+'% by units ('+num(k.dq)+' of '+num(k.qty)+').');
+    if(/pending/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b> pending: '+num(k.qty-k.dq)+' units worth '+usdF(k.pend)+'.');
+    if(/overdue/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b> overdue: '+usdF(k.over)+' ('+k.O.length+' lines).');
+    if(/quantity|units|qty/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b> order quantity: '+num(k.qty)+' units.');
+    if(/value|worth/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b> order value: '+usdF(k.book)+'.');
+    if(/how many line|lines/.test(s))return trTxt('<b>'+aiEsc(prod)+'</b>: '+L.length+' lines across '+k.pos+' POs.');
+    return trTxt('<b>'+aiEsc(prod)+'</b>: '+L.length+' lines · '+k.pos+' POs · '+num(k.qty)+' units · '+usdF(k.book)+' order value · '+usdF(k.pend)+' pending.');}
+  /* ---------- lists / details ---------- */
+  if(/list|show all|which lines|give me all/.test(s)){
+    if(/overdue/.test(s))return trList(K.O,'Overdue lines');
+    if(/no promised|without.*promised|missing.*date|unconfirmed|clarification/.test(s))return trList(R.filter(x=>!TR.deliv(x)&&!x.expShip),'Lines with no promised date');
+    if(/ready to ship|material ready/.test(s))return trList(R.filter(x=>/material ready to ship/i.test(x.stage||'')),'Material ready to ship');
+    if(/due in|next (\d+)/.test(s)){const dm=(s.match(/next (\d+)/)||s.match(/due in (\d+)/)||[])[1];const dv=dm?+dm:15;return trList(K.TK.filter(x=>{const d=trAgeDays(x);return d!=null&&d>=0&&d<=dv;}),'Lines due in the next '+dv+' days');}
+    if(/shipped|delivered/.test(s))return trList(K.D,'Shipped / delivered lines');
+  }
+  /* ---------- executive KPIs ---------- */
+  if(/executive summary|exec summary|leadership brief|management summary/.test(s))
+    return trTxt('The file contains <b>'+K.pos+' POs</b> and <b>'+num(K.lines)+' lines</b> worth <b>'+usdF(K.book)+'</b>. '+(K.qty?(K.dq/K.qty*100).toFixed(1):'0.0')+'% of units are delivered. Open value is <b>'+usdF(K.pend)+'</b>, including <b>'+usdF(K.over)+'</b> overdue ('+K.O.length+' lines). '+K.mats+' distinct materials; '+num(K.qty)+' units on order, '+num(K.dq)+' delivered.');
+  if(/how many (purchase orders|pos|po)\b/.test(s)&&!/line/.test(s))return trTxt('There are <b>'+K.pos+'</b> distinct purchase orders.');
+  if(/how many (po )?line items|how many lines\b/.test(s)&&!/overdue|pending|deliver|track|product|buyer/.test(s))return trTxt('There are <b>'+num(K.lines)+'</b> PO line items.');
+  if(/how many distinct materials|number of materials|how many materials/.test(s))return trTxt('There are <b>'+K.mats+'</b> distinct material numbers.');
+  if(/total order book value|total order value|total book value|order book value|total value\b/.test(s))return trTxt('The total order book value is <b>'+usdF(K.book)+'</b>.');
+  if(/completed.*value|shipped value|delivered value/.test(s))return trTxt('Completed or shipped value is <b>'+usdF(K.deliv)+'</b>.');
+  if(/(open|pending) value/.test(s))return trTxt('Open or pending value is <b>'+usdF(K.pend)+'</b>.');
+  if(/overdue value|value.*overdue/.test(s))return trTxt('Overdue open value is <b>'+usdF(K.over)+'</b> across '+K.O.length+' lines.');
+  if(/total order quantity|total quantity|total units/.test(s))return trTxt('Total order quantity is <b>'+num(K.qty)+'</b> units.');
+  if(/(delivered|shipped).*(units|quantity)|units.*delivered/.test(s))return trTxt('Delivered or shipped quantity is <b>'+num(K.dq)+'</b> units.');
+  if(/units.*pending|pending.*units|pending quantity/.test(s))return trTxt('Pending quantity is <b>'+num(K.qty-K.dq)+'</b> units.');
+  if(/overdue units|units.*overdue/.test(s))return trTxt('There are <b>'+num(K.oq)+'</b> overdue units.');
+  if(/lines.*delivered|delivered.*lines|lines.*shipped/.test(s))return trTxt('<b>'+K.D.length+'</b> lines are delivered or shipped.');
+  if(/lines.*(pending|on track|track)/.test(s))return trTxt('<b>'+K.TK.length+'</b> lines are pending and on track.');
+  if(/lines.*overdue|overdue.*lines|how many.*overdue/.test(s))return trTxt('<b>'+K.O.length+'</b> lines are overdue.');
+  if(/completion.*(unit|percent)|unit completion|percentage.*unit/.test(s))return trTxt('Unit completion is <b>'+(K.qty?(K.dq/K.qty*100).toFixed(1):'0.0')+'%</b> ('+num(K.dq)+' of '+num(K.qty)+' units).');
+  if(/completion.*value|value completion/.test(s))return trTxt('Value completion is <b>'+(K.book?(K.deliv/K.book*100).toFixed(1):'0.0')+'%</b> ('+usdF(K.deliv)+' of '+usdF(K.book)+').');
+  if(/average delay|avg delay|mean delay/.test(s)){const dd=K.O.map(TR.dday).filter(v=>v!=null);return trTxt('Average delay across overdue lines is <b>'+(dd.length?(dd.reduce((a,b)=>a+b,0)/dd.length).toFixed(1):'0')+' days</b>.');}
+  if(/share.*open value.*overdue|overdue.*share.*open/.test(s))return trTxt('Overdue value represents <b>'+(K.pend?(K.over/K.pend*100).toFixed(1):'0.0')+'%</b> of open value.');
+  if(/share.*lines.*overdue|overdue.*share.*lines/.test(s))return trTxt('Overdue lines represent <b>'+(K.lines?(K.O.length/K.lines*100).toFixed(1):'0.0')+'%</b> of all lines.');
+  return null;
+}
+
 function answerQuery(qRaw){
   const s=aiNormalize(qRaw);
+  try{const _tr=trAns(qRaw);if(_tr!=null)return _tr;}catch(e){}
   if(/\bexecutive\b|exec summary|leadership (summary|brief|report)|board (summary|report)|management summary|briefing|health check|health score|full (summary|report)/.test(s))return aiExecSummary();
   const nums=qRaw.match(/\d{4,}/g)||[];
   let poHit=nums.find(n=>R.some(x=>x.po===n));
@@ -1367,6 +1501,69 @@ window.exportReportPDF=()=>{ensurePDF().then(()=>{
   doc.save('PSM_Weekly_Report_'+scope.replace(/[^a-z0-9]+/gi,'_')+'.pdf');
   toast('PDF report downloaded.');
 }).catch(()=>toast('Could not load the PDF library (offline?).',true));};
+
+/* ================= AI HELP (chart-forward chat, training pack) ================= */
+let aihMsgs=[];
+function aihGroup(keyfn,metricfn){const g={};R.forEach(x=>{const k=keyfn(x);if(k==null||String(k).trim()==='')return;(g[k]=g[k]||[]).push(x);});return Object.entries(g).map(([k,a])=>({k,v:metricfn(a),n:a.length}));}
+function aihMetric(s){
+  if(/pending unit|pending qty|pending quantit/.test(s))return {fn:a=>sum(a.filter(x=>!TR.deliv(x)),x=>x.orderQty),u:'qty',name:'pending units'};
+  if(/order quantit|order qty|quantity|units/.test(s))return {fn:a=>sum(a,x=>x.orderQty),u:'qty',name:'order quantity'};
+  if(/overdue value|overdue/.test(s))return {fn:a=>sum(a.filter(TR.over),x=>x.value),u:'money',name:'overdue value'};
+  if(/pending value|open value/.test(s))return {fn:a=>sum(a,x=>x.value)-sum(a.filter(TR.deliv),x=>x.value),u:'money',name:'pending value'};
+  if(/po count|number of pos/.test(s))return {fn:a=>uniq(a,x=>x.po),u:'count',name:'PO count'};
+  if(/line count|most lines|number of lines|\blines?\b/.test(s))return {fn:a=>a.length,u:'count',name:'line count'};
+  if(/completion|percent/.test(s))return {fn:a=>{const q=sum(a,x=>x.orderQty);return q?sum(a.filter(TR.deliv),x=>x.orderQty)/q*100:0;},u:'pct',name:'completion %'};
+  return {fn:a=>sum(a,x=>x.value),u:'money',name:'order value'};
+}
+function aihHead(title,g,unit){const top=g.slice().sort((a,b)=>b.v-a.v)[0];const f=aihFmt(unit);return `<h4>${aiEsc(title)}</h4><p class="sub2">${top?aiEsc(top.k)+' leads with '+f(top.v)+' · ':''}${g.length} groups · as of ${M.generated||'today'}</p>`;}
+function aihChart(q){
+  const s=aiNormalize(q);
+  if(!/chart|graph|plot|show|which|top \d|highest|largest|most|versus|\bvs\b|mix|profile|dashboard|compare|trend|monthly|by (product|buyer|po|stage|month)/.test(s))return null;
+  const MT=aihMetric(s);
+  if(/unit price.*(quantity|qty)|price.*(vs|versus).*quant/.test(s)){const pts=R.map(x=>({x:x.orderQty,y:x.unitPrice})).filter(p=>p.x&&p.y);return {html:`<h4>Unit price vs order quantity</h4><p class="sub2">${pts.length} lines plotted</p>`,chart:{type:'scatter',points:pts,xlabel:'Order quantity',ylabel:'Unit price',xunit:'qty',unit:'money'}};}
+  if(/product mix/.test(s)){const g=aihGroup(x=>x.product,a=>sum(a,x=>x.value)).sort((a,b)=>b.v-a.v);return {html:aihHead('Product mix by order value',g,'money'),chart:{type:'doughnut',labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:'money'}};}
+  if(/delivered.*(vs|versus).*pending unit/.test(s)){const P=[...new Set(R.map(x=>x.product))];return {html:`<h4>Delivered vs pending units by product</h4><p class="sub2">${P.length} products · as of ${M.generated||'today'}</p>`,chart:{type:'bar',labels:P,stacked:true,unit:'qty',datasets:[{label:'Delivered',data:P.map(p=>sum(R.filter(x=>x.product===p&&TR.deliv(x)),x=>x.orderQty)),color:'#1E8A6E'},{label:'Pending',data:P.map(p=>sum(R.filter(x=>x.product===p&&!TR.deliv(x)),x=>x.orderQty)),color:'#3A76B8'}]}};}
+  if(/delivered.*(vs|versus).*pending value/.test(s)){const d=sum(R.filter(TR.deliv),x=>x.value);return {html:`<h4>Delivered vs pending value</h4>`,chart:{type:'bar',labels:['Delivered','Pending'],values:[d,sum(R,x=>x.value)-d],unit:'money'}};}
+  if(/overdue.*(vs|versus).*on.?track/.test(s)){return {html:`<h4>Overdue vs on-track pending value</h4>`,chart:{type:'bar',labels:['Overdue','On track'],values:[sum(R.filter(TR.over),x=>x.value),sum(R.filter(TR.onTrack),x=>x.value)],unit:'money'}};}
+  if(/monthly|plot month|by month|over time|trend/.test(s)){
+    let mf=a=>sum(a,x=>x.value),u='money',nm='PO value';
+    if(/required/.test(s)){mf=a=>sum(a,x=>x.orderQty);u='qty';nm='required qty';}
+    else if(/promised/.test(s)){mf=a=>sum(a,x=>x.orderQty);u='qty';nm='promised qty';}
+    else if(/actual|shipped/.test(s)){mf=a=>sum(a.filter(x=>x.actShip),x=>x.orderQty);u='qty';nm='shipped qty';}
+    const g={};R.forEach(x=>{if(!x.poMonth)return;(g[x.poMonth]=g[x.poMonth]||[]).push(x);});
+    const keys=Object.keys(g).sort((a,b)=>new Date('1 '+a)-new Date('1 '+b));
+    return {html:`<h4>Monthly ${nm}</h4><p class="sub2">${keys.length} months · as of ${M.generated||'today'}</p>`,chart:{type:'line',labels:keys,values:keys.map(k=>mf(g[k])),unit:u,slabel:nm}};}
+  if(/shipment status/.test(s)){const g=aihGroup(x=>x.shipStatus,a=>a.length).filter(o=>o.k);return {html:aihHead('Shipment status (lines)',g,'count'),chart:{type:'bar',labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:'count'}};}
+  if(/qc status/.test(s)){const g=aihGroup(x=>x.qcStatus,a=>a.length).filter(o=>o.k);return {html:aihHead('QC status (lines)',g,'count'),chart:{type:'bar',labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:'count'}};}
+  if(/freight/.test(s)){const g=aihGroup(x=>x.freightType,a=>a.length).filter(o=>o.k&&o.k.toUpperCase()!=='NA');return {html:aihHead('Freight type (lines)',g,'count'),chart:{type:'bar',labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:'count'}};}
+  if(/aging/.test(s)){const B=[['Due ≤15d',0,15],['16–30d',16,30],['31–45d',31,45],['46–60d',46,60],['61–90d',61,90],['90d+',91,1e9]];const L=R.filter(TR.onTrack);const vals=B.map(b=>sum(L.filter(x=>{const d=trAgeDays(x);return d!=null&&d>=b[1]&&d<=b[2];}),x=>x.value));return {html:`<h4>Aging profile — pending value</h4><p class="sub2">On-track pending by days remaining · as of ${M.generated||'today'}</p>`,chart:{type:'bar',labels:B.map(b=>b[0]),values:vals,unit:'money'}};}
+  const topN=(s.match(/top (\d+)/)||[])[1];
+  if(topN||/which po|by po\b|value concentration|overdue pos/.test(s)){const n=topN?+topN:10;const g=aihGroup(x=>x.po,MT.fn).sort((a,b)=>b.v-a.v).slice(0,n);return {html:`<h4>Top ${n} POs by ${MT.name}</h4><p class="sub2">${g[0]?'#1 '+g[0].k+' · '+aihFmt(MT.u)(g[0].v)+' · ':''}as of ${M.generated||'today'}</p>`,chart:{type:'bar',horiz:true,labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:MT.u}};}
+  let keyfn,dim;
+  if(/buyer/.test(s)){keyfn=x=>x.buyer;dim='buyer';}
+  else if(/production stage|manufactur|\bstage\b/.test(s)){keyfn=x=>(x.remarks||'').trim();dim='production stage';}
+  else if(/categor/.test(s)){keyfn=x=>x.category;dim='PO category';}
+  else {keyfn=x=>x.product;dim='product';}
+  const g=aihGroup(keyfn,MT.fn).filter(o=>o.k).sort((a,b)=>b.v-a.v);
+  return {html:aihHead(MT.name.charAt(0).toUpperCase()+MT.name.slice(1)+' by '+dim,g,MT.u),chart:{type:'bar',horiz:true,labels:g.map(o=>o.k),values:g.map(o=>o.v),unit:MT.u}};
+}
+function aihAnswer(q){let r=null;try{r=aihChart(q);}catch(e){}if(r)return r;try{r=trAns(q);}catch(e){}if(r!=null)return r;try{return answerQuery(q);}catch(e){return 'Sorry — I could not process that.';}}
+function renderAIHelp(){
+  $('#ttl').textContent='AI Help';$('#sub').textContent='Ask a question — get the answer, and a chart with figures where it fits';
+  const welcome=`<div class="aiwelcome">👋 Ask me anything about this data. I'll answer in text and, when it fits, draw a <b>chart with the figures on it</b>. Try:<br>• <b>Which product has the highest order value?</b><br>• <b>Show the top 10 POs by pending value</b><br>• <b>Order value by buyer</b> · <b>Chart QC status</b> · <b>Plot monthly PO value</b><br>• <b>Show the aging profile</b> · <b>Product mix by value</b> · <b>Delivered vs pending value</b><br><br>Ask a plain question (e.g. "total order book value") for a number, or the ones above for a chart.</div>`;
+  $('#view').innerHTML=`<div class="card aiwrap">
+     <div class="aitop"><div><b>AI Help</b> · <span style="color:var(--muted)">${((ALLR&&ALLR.length)||R.length)} lines · figures shown on every chart</span></div>${aihMsgs.length?'<button class="aiclear" onclick="aihClear()">Clear chat ✕</button>':''}</div>
+     <div class="aichat" id="aihChat">${aihMsgs.length?aihMsgs.map((m,i)=>`<div class="aimsg ${m.role}">${m.html}${m.chart?`<div class="aichartbox"><canvas id="aih${i}"></canvas></div>`:''}</div>`).join(''):welcome}</div>
+     <div class="aiinput"><button class="aimic" id="aihMic" onclick="aihMic()" title="Ask by voice"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" style="width:20px;height:20px"><rect x="9" y="2" width="6" height="12" rx="3"/><path d="M5 10a7 7 0 0 0 14 0M12 17v4M8 21h8"/></svg></button>
+       <input id="aihQ" type="text" placeholder="Ask a question or request a chart…" onkeydown="if(event.key==='Enter'){aihSend();}"/>
+       <button class="aisend" onclick="aihSend()">Ask</button></div></div>`;
+  const c=$('#aihChat');if(c)c.scrollTop=c.scrollHeight;const qi=$('#aihQ');if(qi&&aihMsgs.length)qi.focus();
+  if(aihMsgs.some(m=>m.chart))setTimeout(()=>drawChartsFor(aihMsgs,'aih'),40);
+}
+window.aihClear=()=>{aihMsgs=[];renderAIHelp();};
+window.aihSend=()=>{const el=$('#aihQ');if(!el)return;const q=el.value.trim();if(!q)return;el.value='';aihAsk(q);};
+window.aihAsk=q=>{aihMsgs.push({role:'user',html:aiEsc(q)});let res;try{res=aihAnswer(q);}catch(e){res='Sorry — I hit a snag ('+aiEsc(e.message)+').';}const msg={role:'bot'};if(typeof res==='string'){msg.html=res;}else{msg.html=res.html;msg.chart=res.chart;}aihMsgs.push(msg);if(view!=='help')go('help');else renderAIHelp();};
+window.aihMic=()=>{const SR=window.SpeechRecognition||window.webkitSpeechRecognition;if(!SR){toast('Voice input needs Chrome or Edge.',true);return;}const rec=new SR();rec.lang='en-US';rec.interimResults=false;const b=$('#aihMic');if(b)b.classList.add('listening');toast('Listening…');rec.onresult=e=>{aihAsk(e.results[0][0].transcript);};rec.onerror=ev=>{toast('Voice error: '+(ev.error||'no audio'),true);};rec.onend=()=>{if(b)b.classList.remove('listening');};try{rec.start();}catch(e){}};
 
 function go(v){view=v;document.querySelectorAll('#nav button').forEach(b=>b.classList.toggle('on',b.dataset.v===v));
   const hideTop=(v==='reports');['.yearbar','#themeToggle','.exportwrap'].forEach(sel=>{const el=document.querySelector(sel);if(el)el.style.display=hideTop?'none':'';});
