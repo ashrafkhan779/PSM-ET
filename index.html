@@ -1290,13 +1290,21 @@ let repYear='__ALL__',repWeek='__ALL__',repStat='__ALL__',repSortKey=null,repSor
 function isoWeek(d){const dt=new Date(Date.UTC(d.getUTCFullYear(),d.getUTCMonth(),d.getUTCDate()));const day=dt.getUTCDay()||7;dt.setUTCDate(dt.getUTCDate()+4-day);const ys=new Date(Date.UTC(dt.getUTCFullYear(),0,1));const wk=Math.ceil((((dt-ys)/86400000)+1)/7);return {year:dt.getUTCFullYear(),week:wk};}
 function repEff(x){const shipped=x.stage==='Shipped'||!!x.actShip;const d=shipped?x.actShip:(x.expShip||null);return {d,shipped};}
 function repWeekKey(ds){const d=new Date(ds+'T00:00:00Z');const iw=isoWeek(d);return iw.year+'-W'+String(iw.week).padStart(2,'0');}
-function repStatus(x){if(x.stage==='Shipped'||x.actShip)return 'Shipped';if(!x.expShip)return 'Under Clarification';return x.stage;}
+function repStatus(x){const st=(x.stage||'').trim();
+  if(/^shipped$/i.test(st))return 'Shipped';
+  if(/under\s*clarification/i.test(st))return 'Under Clarification';
+  if(/material ready to ship/i.test(st))return 'Material Ready to Ship';
+  if(/in.?process/i.test(st))return 'In-Process';
+  if(!x.expShip)return 'Under Clarification';
+  return st||'In-Process';}
 const REP_ORDER={'Shipped':0,'Material Ready to Ship':1,'In-Process':2,'Under Clarification':3};
+function repShipped(x){return repStatus(x)==='Shipped';}
 function repRows(){
-  return ALLR.filter(x=>{const e=repEff(x);const unconf=(e.d===null);
+  return ALLR.filter(x=>{
+    const shipped=repShipped(x);const unconf=(repStatus(x)==='Under Clarification');
     if(repWeek==='__UNCONF__')return unconf;
-    if(repWeek!=='__ALL__')return (e.d&&repWeekKey(e.d)===repWeek)||unconf;
-    if(repYear!=='__ALL__')return (e.d&&(''+new Date(e.d+'T00:00:00Z').getUTCFullYear())===repYear)||unconf;
+    if(repWeek!=='__ALL__'){ if(shipped)return !!x.actShip&&repWeekKey(x.actShip)===repWeek; return true; }
+    if(repYear!=='__ALL__'){ if(shipped)return !!x.actShip&&(''+new Date(x.actShip+'T00:00:00Z').getUTCFullYear())===repYear; return true; }
     return true;});
 }
 function repYearOpts(){const ys=[...new Set(ALLR.map(x=>{const e=repEff(x);return e.d?(''+new Date(e.d+'T00:00:00Z').getUTCFullYear()):null;}).filter(Boolean))].sort();return [{v:'__ALL__',t:'All years'}].concat(ys.map(y=>({v:y,t:y})));}
@@ -1304,7 +1312,7 @@ function repWeekOpts(){
   const m={};ALLR.forEach(x=>{const e=repEff(x);if(!e.d)return;const d=new Date(e.d+'T00:00:00Z');const iw=isoWeek(d);if(repYear!=='__ALL__'&&(''+iw.year)!==repYear)return;const key=iw.year+'-W'+String(iw.week).padStart(2,'0');
     if(!m[key]){const mon=new Date(Date.UTC(iw.year,0,1+(iw.week-1)*7));mon.setUTCDate(mon.getUTCDate()-(mon.getUTCDay()||7)+1);m[key]={key,label:'Wk '+iw.week+' · '+mon.toLocaleDateString('en-US',{day:'2-digit',month:'short'})+(repYear==='__ALL__'?' '+iw.year:'')};}});
   const weeks=Object.values(m).sort((a,b)=>a.key<b.key?-1:1).map(w=>({v:w.key,t:w.label}));
-  const hasUnconf=ALLR.some(x=>repEff(x).d===null);
+  const hasUnconf=ALLR.some(x=>repStatus(x)==='Under Clarification');
   return [{v:'__ALL__',t:'All weeks'}].concat(weeks).concat(hasUnconf?[{v:'__UNCONF__',t:'Under clarification (no date)'}]:[]);
 }
 window.setRepYear=v=>{repYear=v;repWeek='__ALL__';renderReports();};
@@ -1331,7 +1339,7 @@ function renderReports(){
     const ea=repEff(a).d||'9999',eb=repEff(b).d||'9999';return ea<eb?-1:ea>eb?1:0;});
   const rowHTML=repSorted.length?repSorted.map(x=>`<tr onclick="openPO('${x.po}')"><td class="mono">${x.plant||'—'}</td><td title="${(x.supplier||'').replace(/"/g,'&quot;')}">${x.supplier||'—'}</td><td class="mono">${fmtd(x.poDate)}</td><td class="mono">${fmtd(x.reqDate)}</td><td class="mono">${fmtd(x.expShip)}</td><td class="mono">${x.po}</td><td class="center mono">${x.line??'—'}</td><td class="mono">${x.material}</td><td title="${(x.desc||'').replace(/"/g,'&quot;')}">${x.desc||'—'}</td><td class="right mono">${num(x.orderQty)}</td><td class="mono">${x.orderUnit||'—'}</td><td class="right mono">${x.unitPrice?x.unitPrice.toFixed(2):'—'}</td><td class="mono">${x.currency||'—'}</td><td class="right mono">${usd(x.value)}</td><td>${x.qcStatus?x.qcStatus:'—'}</td><td>${repStatusChip(repStatus(x))}</td></tr>`).join(''):`<tr><td colspan="16" style="text-align:center;color:var(--muted);padding:24px">No lines for this selection.</td></tr>`;
   const sortArrow=sk=>repSortKey===sk?(repSortDir>0?' ▲':' ▼'):' ⇅';
-  const table=`<div class="card" style="margin-top:14px"><h3>Weekly ship report — ${scope}${repStat==='__ALL__'?'':' · '+repStat} <span class="fcount">${rows.length} lines · ${uniq(rows,x=>x.po)} POs · ${usdK(sum(rows,x=>x.value))}</span></h3><p class="cap">Shipped rows are by actual-ship week; open rows by ET promised (need-to-ship) week; no-date lines are Under Clarification.</p>
+  const table=`<div class="card" style="margin-top:14px"><h3>Weekly ship report — ${scope}${repStat==='__ALL__'?'':' · '+repStat} <span class="fcount">${rows.length} lines · ${uniq(rows,x=>x.po)} POs · ${usdK(sum(rows,x=>x.value))}</span></h3><p class="cap">Shipped lines appear only in the week they actually shipped. Material Ready to Ship, In-Process and Under Clarification lines always appear (the full open backlog).</p>
    <div class="tablewrap fit"><table class="fittable reptable"><colgroup>${cols.map(c=>`<col style="width:${c[1]}">`).join('')}</colgroup>
    <thead><tr>${cols.map(c=>{const sk=c[0]==='QC Status'?'qc':c[0]==='Current Status'?'status':null;return sk?`<th class="sortth" onclick="repSort('${sk}')">${c[0]}<span class="sarr">${sortArrow(sk)}</span></th>`:`<th>${c[0]}</th>`;}).join('')}</tr></thead><tbody>${rowHTML}</tbody></table></div></div>`;
   $('#view').innerHTML=filters+statCards+table;
